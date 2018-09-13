@@ -7,6 +7,8 @@ from cowbathybrid.command_runner import run_cmd
 
 def run_hybrid_assembly(sequence_file_info_list, output_directory, threads):
     for sequence_file_info in sequence_file_info_list:
+        if os.path.isfile(os.path.join(output_directory, 'BestAssemblies', sequence_file_info.outname + '.fasta')):
+            continue
         if not os.path.isdir(os.path.join(output_directory, sequence_file_info.outname)):
             os.makedirs(os.path.join(output_directory, sequence_file_info.outname))
         forward_trimmed, reverse_trimmed = trim_illumina(forward_reads=sequence_file_info.illumina_r1,
