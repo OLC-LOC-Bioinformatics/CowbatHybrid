@@ -1,31 +1,42 @@
 #!/usr/bin/env python
 
 import os
+import glob
+from Bio import SeqIO
 
 
-def create_combinedmetadata_report(sequence_file_info_list, n50_dict, num_contigs_dict, total_length_dict,
-                                   output_directory):
-    reports_dir = os.path.join(output_directory, 'reports')
-    if not os.path.isdir(reports_dir):
-        os.makedirs(reports_dir)
+def create_combinedmetadata_report(assemblies_dir, reports_directory, metadata):
+    if not os.path.isdir(reports_directory):
+        os.makedirs(reports_directory)
+    # Create basic assembly stats (N50, numcontigs, total length)
+    basic_stats_report(assemblies_dir=assemblies_dir,
+                       reports_directory=reports_directory)
+    # TODO: Actually write combined metadata report by parsing through all other reports.
 
-    with open(os.path.join(reports_dir, 'combinedMetadata.csv'), 'w') as f:
-        f.write('SampleName,N50,NumContigs,TotalLength,MeanInsertSize,AverageCoverageDepth,ReferenceGenome,RefGenomeAlleleMatches,16sPhylogeny,rMLSTsequenceType,MLSTsequencetype,MLSTmatches,coreGenome,SeroType,geneSeekrProfile,vtyperProfile,percentGC,TotalPredictedGenes,predictedgenesover3000bp,predictedgenesover1000bp,predictedgenesover500bp,predictedgenesunder500bp,SequencingDate,Investigator,TotalClustersinRun,NumberofClustersPF,PercentOfClusters,LengthofForwardRead,LengthofReverseRead,Project,PipelineVersion\n')
-        for sequence_file_info in sequence_file_info_list:
-            if sequence_file_info.outname in n50_dict:
-                n50 = n50_dict[sequence_file_info.outname]
-            else:
-                n50 = 'ND'
-            if sequence_file_info.outname in num_contigs_dict:
-                num_contigs = num_contigs_dict[sequence_file_info.outname]
-            else:
-                num_contigs = 'ND'
-            if sequence_file_info.outname in total_length_dict:
-                total_length = total_length_dict[sequence_file_info.outname]
-            else:
-                total_length = 'ND'
-            f.write('{},{},{},{},'.format(sequence_file_info.outname, n50, num_contigs, total_length))
-            for i in range(27):
-                f.write(',')
-            f.write('\n')
+
+def basic_stats_report(assemblies_dir, reports_directory):
+    assembly_files = glob.glob(os.path.join(assemblies_dir, '*.fasta'))
+    with open(os.path.join(reports_directory, 'basic_stats.csv'), 'w') as f:
+        f.write('SampleName,N50,NumContigs,TotalLength\n')
+    for assembly in assembly_files:
+        total_length = 0
+        contig_sizes = list()
+        for contig in SeqIO.parse(assembly, 'fasta'):
+            contig_length = len(contig)
+            contig_sizes.append(contig_length)
+            total_length += contig_length
+        contig_sizes = sorted(contig_sizes, reverse=True)
+        num_contigs = len(contig_sizes)
+        length_so_far = 0
+        n50 = 0
+        i = 0
+        while length_so_far <= (total_length * 0.5) and i < len(contig_sizes):
+            length_so_far += contig_sizes[i]
+            n50 = contig_sizes[i]
+            i += 1
+        with open(os.path.join(reports_directory, 'basic_stats.csv'), 'a+') as f:
+            sample_name = os.path.split(assembly)[1].replace('.fasta', '')
+            f.write('{},{},{},{}\n'.format(sample_name, n50, num_contigs, total_length))
+
+
 

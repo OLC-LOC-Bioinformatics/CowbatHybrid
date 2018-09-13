@@ -2,7 +2,6 @@
 
 import os
 import shutil
-from Bio import SeqIO
 from cowbathybrid.command_runner import run_cmd
 
 
@@ -75,49 +74,4 @@ def run_unicycler(forward_reads, reverse_reads, long_reads, output_directory, th
                                                                  threads=threads)
     run_cmd(cmd)
 
-
-def find_n50(assembly_files):
-    """
-    Returns N50 size.
-    :param assembly_files: List of paths to assemblies.
-    :return: Dictionary with N50 as value and path to assembly as key.
-    """
-    n50_dict = dict()
-    for assembly in assembly_files:
-        total_length = 0
-        contig_sizes = list()
-        for contig in SeqIO.parse(assembly, 'fasta'):
-            contig_length = len(contig)
-            contig_sizes.append(contig_length)
-            total_length += contig_length
-        contig_sizes = sorted(contig_sizes, reverse=True)
-        length_so_far = 0
-        n50 = 0
-        i = 0
-        while length_so_far <= (total_length * 0.5) and i < len(contig_sizes):
-            length_so_far += contig_sizes[i]
-            n50 = contig_sizes[i]
-            i += 1
-        n50_dict[os.path.split(assembly)[1].replace('.fasta', '')] = n50
-    return n50_dict
-
-
-def find_total_length(assembly_files):
-    total_length_dict = dict()
-    for assembly in assembly_files:
-        total_length = 0
-        for contig in SeqIO.parse(assembly, 'fasta'):
-            total_length += len(contig)
-        total_length_dict[os.path.split(assembly)[1].replace('.fasta', '')] = total_length
-    return total_length_dict
-
-
-def find_num_contigs(assembly_files):
-    contigs_dict = dict()
-    for assembly in assembly_files:
-        num_contigs = 0
-        for contig in SeqIO.parse(assembly, 'fasta'):
-            num_contigs += 1
-        contigs_dict[os.path.split(assembly)[1].replace('fasta', '')] = num_contigs
-    return contigs_dict
 

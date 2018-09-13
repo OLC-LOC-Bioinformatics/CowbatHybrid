@@ -2,11 +2,14 @@
 
 from cowbathybrid.reports import create_combinedmetadata_report
 from cowbathybrid.parsers import parse_hybrid_csv
+from cowbathybrid.metadata_setup import Metadata
 from cowbathybrid.quality import run_nanoplot
+from spadespipeline.prodigal import Prodigal
 from cowbathybrid import assemble
 import multiprocessing
 import argparse
 import logging
+import time
 import os
 
 
@@ -56,14 +59,13 @@ if __name__ == '__main__':
     completed_assemblies = assemble.run_hybrid_assembly(sequence_file_info_list=sequence_file_info_list,
                                                         output_directory=args.output_directory,
                                                         threads=args.threads)
+    metadata = Metadata(assemblies_dir=os.path.join(args.output_directory, 'BestAssemblies'),
+                        starttime=time.time(),
+                        logfile='log.txt',
+                        outputdir=args.output_directory)
+    metadata.strainer()
+    Prodigal(metadata)
+    create_combinedmetadata_report(assemblies_dir=os.path.join(args.output_directory, 'BestAssemblies'),
+                                   reports_directory=os.path.join(args.output_directory, 'reports'),
+                                   metadata=metadata)
 
-    # Get some very basic stats on our assemblies.
-    n50_dict = assemble.find_n50(assembly_files=completed_assemblies)
-    total_length_dict = assemble.find_total_length(assembly_files=completed_assemblies)
-    num_contigs_dict = assemble.find_num_contigs(assembly_files=completed_assemblies)
-
-    create_combinedmetadata_report(sequence_file_info_list=sequence_file_info_list,
-                                   n50_dict=n50_dict,
-                                   total_length_dict=total_length_dict,
-                                   num_contigs_dict=num_contigs_dict,
-                                   output_directory=args.output_directory)
