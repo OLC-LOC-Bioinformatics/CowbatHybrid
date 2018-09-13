@@ -4,7 +4,9 @@ from cowbathybrid.reports import create_combinedmetadata_report
 from cowbathybrid.parsers import parse_hybrid_csv
 from cowbathybrid.metadata_setup import Metadata
 from cowbathybrid.quality import run_nanoplot
+from spadespipeline.typingclasses import Prophages, Univec
 from spadespipeline.prodigal import Prodigal
+import coreGenome.core as core
 from cowbathybrid import assemble
 from geneseekr import geneseekr
 import multiprocessing
@@ -66,11 +68,23 @@ if __name__ == '__main__':
                         outputdir=args.output_directory,
                         cpus=args.threads)
     metadata.strainer()
+    # metadata.reffilepath = args.referencefilepath
     Prodigal(metadata)
     metadata.targetpath = os.path.join(args.referencefilepath, 'resfinder')
     metadata.reportpath = os.path.join(args.output_directory, 'reports')
     resfinder = geneseekr.BLAST(metadata, 'resfinder_assembled')
     resfinder.seekr()
+    metadata.targetpath = os.path.join(args.referencefilepath, 'prophages')
+    prophages = Prophages(metadata, analysistype='prophages', cutoff=90)
+    prophages.seekr()
+    metadata.targetpath = os.path.join(args.referencefilepath, 'univec')
+    univec = Univec(metadata, analysistype='univec', cutoff=80)
+    univec.seekr()
+    metadata.targetpath = os.path.join(args.referencefilepath, 'coregenome')
+    metadata.reffilepath = args.referencefilepath
+    # coregen = core.CoreGenome(metadata, analysistype='coregenome', genus_specific=True)
+    # coregen.seekr()
+    # core.AnnotatedCore(metadata)
     create_combinedmetadata_report(assemblies_dir=os.path.join(args.output_directory, 'BestAssemblies'),
                                    reports_directory=os.path.join(args.output_directory, 'reports'),
                                    metadata=metadata)

@@ -17,6 +17,11 @@ class Metadata:
         self.cpus = cpus
         self.targetpath = ''
         self.reportpath = ''
+        self.unique = True
+        self.commit = 'v0.0.1'
+        self.homepath = 'a;slkdfhjasdf'  # Pretty sure this never actually gets used.
+        self.path = 'asdfasdfa'  # This also never gets used?
+        # self.reffilepath = ''
 
     def strainer(self):
         """
@@ -43,6 +48,7 @@ class Metadata:
             metadata.commands = GenObject()
             # Set the .general.bestassembly file to be the name and path of the sequence file
             metadata.general.bestassemblyfile = sample
+            metadata.general.referencegenus = 'Listeria'  # TODO: Fix this to actually be the reference genus.
             metadata.general.outputdirectory = os.path.join(self.outputdir, filename)
             metadata.general.logout = os.path.join(self.outputdir, filename, filename + '_out.txt')
             metadata.general.logerr = os.path.join(self.outputdir, filename, filename + '_err.txt')
