@@ -10,5 +10,6 @@ setup(
     author="Andrew Low",
     author_email="andrew.low@canada.ca",
     url="https://github.com/lowandrew/cowbat-hybrid",
-    install_requires=['olctools']
+    install_requires=['olctools',
+                      'geneseekr']
 )

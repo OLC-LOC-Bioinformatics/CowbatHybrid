@@ -7,13 +7,16 @@ import os
 
 class Metadata:
 
-    def __init__(self, assemblies_dir, logfile, starttime, outputdir):
+    def __init__(self, assemblies_dir, logfile, starttime, outputdir, cpus):
         self.assemblies_dir = assemblies_dir
         self.logfile = logfile
         self.starttime = starttime
         self.runmetadata = MetadataObject()
         self.runmetadata.samples = list()
         self.outputdir = outputdir
+        self.cpus = cpus
+        self.targetpath = ''
+        self.reportpath = ''
 
     def strainer(self):
         """

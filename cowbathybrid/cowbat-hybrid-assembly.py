@@ -6,6 +6,7 @@ from cowbathybrid.metadata_setup import Metadata
 from cowbathybrid.quality import run_nanoplot
 from spadespipeline.prodigal import Prodigal
 from cowbathybrid import assemble
+from geneseekr import geneseekr
 import multiprocessing
 import argparse
 import logging
@@ -62,9 +63,14 @@ if __name__ == '__main__':
     metadata = Metadata(assemblies_dir=os.path.join(args.output_directory, 'BestAssemblies'),
                         starttime=time.time(),
                         logfile='log.txt',
-                        outputdir=args.output_directory)
+                        outputdir=args.output_directory,
+                        cpus=args.threads)
     metadata.strainer()
     Prodigal(metadata)
+    metadata.targetpath = os.path.join(args.referencefilepath, 'resfinder')
+    metadata.reportpath = os.path.join(args.output_directory, 'reports')
+    resfinder = geneseekr.BLAST(metadata, 'resfinder_assembled')
+    resfinder.seekr()
     create_combinedmetadata_report(assemblies_dir=os.path.join(args.output_directory, 'BestAssemblies'),
                                    reports_directory=os.path.join(args.output_directory, 'reports'),
                                    metadata=metadata)
