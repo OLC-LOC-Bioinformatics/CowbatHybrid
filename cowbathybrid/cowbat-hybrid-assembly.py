@@ -18,7 +18,7 @@ import os
 
 if __name__ == '__main__':
     logging.basicConfig(format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
-                        level=logging.INFO,
+                        level=logging.DEBUG,  # TODO: Setup differnet log levels
                         datefmt='%Y-%m-%d %H:%M:%S')
     parser = argparse.ArgumentParser(description='Assembly and perform some typing on hybrid MinION/Illumina data.')
     parser.add_argument('-i', '--input_csv',
