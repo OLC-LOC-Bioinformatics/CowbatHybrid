@@ -8,7 +8,7 @@ from spadespipeline.typingclasses import Prophages, Univec
 from spadespipeline.prodigal import Prodigal
 import coreGenome.core as core
 from cowbathybrid import assemble
-from geneseekr import geneseekr
+from geneseekr.blast import BLAST
 import multiprocessing
 import argparse
 import logging
@@ -18,7 +18,7 @@ import os
 
 if __name__ == '__main__':
     logging.basicConfig(format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
-                        level=logging.DEBUG,  # TODO: Setup differnet log levels
+                        level=logging.DEBUG,  # TODO: Setup different log levels
                         datefmt='%Y-%m-%d %H:%M:%S')
     parser = argparse.ArgumentParser(description='Assembly and perform some typing on hybrid MinION/Illumina data.')
     parser.add_argument('-i', '--input_csv',
@@ -56,13 +56,17 @@ if __name__ == '__main__':
                      threads=args.threads,
                      output_directory=nanoplot_outdir)
 
-    # Give the list of sequence_file_info to the run_hybrid_assembly method, which runs unicycler.
-    # It will put the assemblies into a folder called BestAssemblies in our outdir, named outname + '.fasta'
-    # The list completed_assemblies now has each of those assemblies.
-    completed_assemblies = assemble.run_hybrid_assembly(sequence_file_info_list=sequence_file_info_list,
-                                                        output_directory=args.output_directory,
-                                                        threads=args.threads)
-    metadata = Metadata(assemblies_dir=os.path.join(args.output_directory, 'BestAssemblies'),
+    best_assemblies_dir = os.path.join(args.output_directory, 'BestAssemblies')
+    if not os.path.isdir(best_assemblies_dir):
+        os.makedirs(best_assemblies_dir)
+    for sequence_file_info in sequence_file_info_list:
+        completed_assemblies = assemble.run_hybrid_assembly(long_reads=sequence_file_info.minion_reads,
+                                                            forward_short_reads=sequence_file_info.illumina_r1,
+                                                            reverse_short_reads=sequence_file_info.illumina_r2,
+                                                            output_directory=os.path.join(args.output_directory, sequence_file_info.outname, 'assembly'),
+                                                            threads=args.threads,
+                                                            assembly_file=os.path.join(best_assemblies_dir, sequence_file_info.outname + '.fasta'))
+    metadata = Metadata(assemblies_dir=best_assemblies_dir,
                         starttime=time.time(),
                         logfile='log.txt',
                         outputdir=args.output_directory,
@@ -72,7 +76,7 @@ if __name__ == '__main__':
     Prodigal(metadata)
     metadata.targetpath = os.path.join(args.referencefilepath, 'resfinder')
     metadata.reportpath = os.path.join(args.output_directory, 'reports')
-    resfinder = geneseekr.BLAST(metadata, 'resfinder_assembled')
+    resfinder = BLAST(metadata, 'resfinder_assembled')
     resfinder.seekr()
     metadata.targetpath = os.path.join(args.referencefilepath, 'prophages')
     prophages = Prophages(metadata, analysistype='prophages', cutoff=90)

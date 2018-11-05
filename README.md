@@ -3,7 +3,7 @@
 TODO...
 ### Program Dependencies
 
-- Unicycler (and all of its dependencies)
+- wtdbg2
 - BBMap
 - NanoPlot
 - BLAST
