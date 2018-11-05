@@ -2,8 +2,8 @@
 
 import os
 import glob
-import shutil
 import logging
+from Bio import SeqIO
 from cowbathybrid.command_runner import run_cmd
 
 
@@ -56,7 +56,20 @@ def run_pilon(draft_assembly, forward_reads, reverse_reads, output_assembly, thr
         logging.debug('Pilon round {} complete. Made {} changes.'.format(pilon_rounds, num_changes_made))
         assembly_to_use = os.path.join(pilon_dir, 'pilon.fasta')
         pilon_rounds += 1
-    shutil.copy(src=assembly_to_use, dst=output_assembly)
+    rename_contigs_and_copy_sequences(input_fasta=assembly_to_use, output_fasta=output_assembly)
+
+
+def rename_contigs_and_copy_sequences(input_fasta, output_fasta):
+    """
+    Pilon adds a _pilon to each contig for each round done. That looks stupid, so rewrite the files.
+    :param input_fasta: Path to FASTA that's been corrected lots of times by pilon.
+    :param output_fasta: Path to output fasta file.
+    """
+    sequences_to_write = list()
+    for sequence in SeqIO.parse(input_fasta, 'fasta'):
+        sequence.id = sequence.id.split('_')[0]
+        sequences_to_write.append(sequence)
+    SeqIO.write(sequences=sequences_to_write, handle=output_fasta, format='fasta')
 
 
 def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, assembly_file, output_directory, threads,

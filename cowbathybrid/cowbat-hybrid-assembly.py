@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
+from accessoryFunctions.accessoryFunctions import SetupLogging
 from cowbathybrid.reports import create_combinedmetadata_report
 from cowbathybrid.parsers import parse_hybrid_csv
 from cowbathybrid.metadata_setup import Metadata
+from cowbathybrid.dependency_checks import check_dependencies
 from cowbathybrid.quality import run_nanoplot
 from spadespipeline.typingclasses import Prophages, Univec
 from spadespipeline.mobrecon import MobRecon
 from spadespipeline.prodigal import Prodigal
+from metagenomefilter import automateCLARK
 import spadespipeline.sistr as sistr
 from MASHsippr import mash as mash
 import coreGenome.core as core
@@ -20,9 +23,6 @@ import os
 
 
 if __name__ == '__main__':
-    logging.basicConfig(format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
-                        level=logging.DEBUG,  # TODO: Setup different log levels
-                        datefmt='%Y-%m-%d %H:%M:%S')
     parser = argparse.ArgumentParser(description='Assembly and perform some typing on hybrid MinION/Illumina data.')
     parser.add_argument('-i', '--input_csv',
                         required=True,
@@ -43,8 +43,15 @@ if __name__ == '__main__':
                         type=str,
                         required=True,
                         help='Full path to directory where you want to store your outputs.')
+    parser.add_argument('-verbose', '--verbose',
+                        default=False,
+                        action='store_true',
+                        help='Activate this flag to get lots of debug output.')
     args = parser.parse_args()
+    SetupLogging(debug=args.verbose)
 
+    if check_dependencies() is False:
+        quit(code=1)
     # Parse the input CSV file we were given. This returns a list of SequenceFileInfo objects,
     # which have illumina_r1, illumina_r2, minion_reads, and outname as attributes.
     sequence_file_info_list = parse_hybrid_csv(args.input_csv)
@@ -135,8 +142,17 @@ if __name__ == '__main__':
     sistr.Sistr(inputobject=metadata,
                 analysistype='sistr')
 
+    # CLARK
+    automateCLARK.PipelineInit(inputobject=metadata,
+                               extension='fasta',
+                               light=True)
+
+    # MLST
+
+    # rMLST
+
     # Finally, create combined metadata report.
     create_combinedmetadata_report(assemblies_dir=os.path.join(args.output_directory, 'BestAssemblies'),
                                    reports_directory=os.path.join(args.output_directory, 'reports'),
                                    metadata=metadata)
-
+    # reporter.Reporter(metadata)  TODO: Get the OLCTools version compatible with this?
