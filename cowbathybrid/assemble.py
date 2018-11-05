@@ -37,7 +37,7 @@ def run_pilon(draft_assembly, forward_reads, reverse_reads, output_assembly, thr
     pilon_rounds = 1
     num_changes_made = 8888858
     assembly_to_use = draft_assembly
-    while pilon_rounds < max_pilon_rounds and num_changes_made > 0:
+    while pilon_rounds <= max_pilon_rounds and num_changes_made > 0:
         logging.debug('Begin pilon round {}'.format(pilon_rounds))
         pilon_dir = os.path.join(output_dir, 'pilon_{}'.format(pilon_rounds))
         if not os.path.isdir(pilon_dir):

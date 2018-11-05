@@ -5,7 +5,10 @@ from cowbathybrid.parsers import parse_hybrid_csv
 from cowbathybrid.metadata_setup import Metadata
 from cowbathybrid.quality import run_nanoplot
 from spadespipeline.typingclasses import Prophages, Univec
+from spadespipeline.mobrecon import MobRecon
 from spadespipeline.prodigal import Prodigal
+import spadespipeline.sistr as sistr
+from MASHsippr import mash as mash
 import coreGenome.core as core
 from cowbathybrid import assemble
 from geneseekr.blast import BLAST
@@ -66,29 +69,73 @@ if __name__ == '__main__':
                                                             output_directory=os.path.join(args.output_directory, sequence_file_info.outname, 'assembly'),
                                                             threads=args.threads,
                                                             assembly_file=os.path.join(best_assemblies_dir, sequence_file_info.outname + '.fasta'))
+
+    # All stuff for typing pipeline needs a 'MetadataObject', which keeps track of all the things and is what gets
+    # passed to methods, modified, and then returned.
     metadata = Metadata(assemblies_dir=best_assemblies_dir,
                         starttime=time.time(),
                         logfile='log.txt',
                         outputdir=args.output_directory,
                         cpus=args.threads)
     metadata.strainer()
-    # metadata.reffilepath = args.referencefilepath
-    Prodigal(metadata)
-    metadata.targetpath = os.path.join(args.referencefilepath, 'resfinder')
+    metadata.reffilepath = args.referencefilepath
     metadata.reportpath = os.path.join(args.output_directory, 'reports')
-    resfinder = BLAST(metadata, 'resfinder_assembled')
+    # Mash needs a trimmedcorrectedfastqfiles - hack that by making it equal to a list where only entry is the
+    # best assembly file for that sample
+    for sample in metadata.runmetadata.samples:
+        sample.general.trimmedcorrectedfastqfiles = [sample.general.bestassemblyfile]
+    # Try to determine what genus things are using MASH
+    mash.Mash(inputobject=metadata,
+              analysistype='mash')
+
+    # Once we've mashed, we have a referencegenus attribute - other things expect a closestrefseqgenus attribute, so set
+    # that too - they're pretty much the same thing.
+    for sample in metadata.runmetadata.samples:
+        sample.general.closestrefseqgenus = sample.general.referencegenus
+
+    # Run all the assembly-based typing!
+    Prodigal(metadata)
+
+    # AMR
+    metadata.targetpath = os.path.join(args.referencefilepath, 'resfinder')
+    resfinder = BLAST(metadata, 'resfinder')
     resfinder.seekr()
+
+    # Prophage
     metadata.targetpath = os.path.join(args.referencefilepath, 'prophages')
     prophages = Prophages(metadata, analysistype='prophages', cutoff=90)
     prophages.seekr()
+
+    # Univec
     metadata.targetpath = os.path.join(args.referencefilepath, 'univec')
     univec = Univec(metadata, analysistype='univec', cutoff=80)
     univec.seekr()
+
+    # Core genome
     metadata.targetpath = os.path.join(args.referencefilepath, 'coregenome')
     metadata.reffilepath = args.referencefilepath
-    # coregen = core.CoreGenome(metadata, analysistype='coregenome', genus_specific=True)
-    # coregen.seekr()
-    # core.AnnotatedCore(metadata)
+    coregen = core.CoreGenome(metadata, analysistype='coregenome', genus_specific=True)
+    coregen.seekr()
+    core.AnnotatedCore(metadata)
+
+    # Plasmids
+    # MobRecon expects a resfinder_assembled attribute - this should be the same as resfinder, so set equal.
+    for sample in metadata.runmetadata.samples:
+        sample.resfinder_assembled = sample.resfinder
+
+    mob = MobRecon(metadata=metadata.runmetadata.samples,
+                   analysistype='mobrecon',
+                   databasepath=metadata.reffilepath,
+                   threads=args.threads,
+                   logfile='log.txt',  # TODO: Set up actual logging.
+                   reportpath=metadata.reportpath)
+    mob.mob_recon()
+
+    # Salmonella serotyping - genus should be taken care of by having run mash.
+    sistr.Sistr(inputobject=metadata,
+                analysistype='sistr')
+
+    # Finally, create combined metadata report.
     create_combinedmetadata_report(assemblies_dir=os.path.join(args.output_directory, 'BestAssemblies'),
                                    reports_directory=os.path.join(args.output_directory, 'reports'),
                                    metadata=metadata)

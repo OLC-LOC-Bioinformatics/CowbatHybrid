@@ -13,6 +13,8 @@ class Metadata:
         self.starttime = starttime
         self.runmetadata = MetadataObject()
         self.runmetadata.samples = list()
+        self.reffilepath = ''
+        self.pipeline = True
         self.outputdir = outputdir
         self.cpus = cpus
         self.targetpath = ''
