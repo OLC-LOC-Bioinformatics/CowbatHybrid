@@ -68,6 +68,7 @@ def rename_contigs_and_copy_sequences(input_fasta, output_fasta):
     sequences_to_write = list()
     for sequence in SeqIO.parse(input_fasta, 'fasta'):
         sequence.id = sequence.id.split('_')[0]
+        sequence.description = ''
         sequences_to_write.append(sequence)
     SeqIO.write(sequences=sequences_to_write, handle=output_fasta, format='fasta')
 
@@ -87,7 +88,6 @@ def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, as
     :param keep_bams: Pilon needs a bamfile at each step. Set to False to have these bamfiles get deleted, or true
     to have the bamfiles kept in case you want to take a closer look at them.
     """
-    # TODO: Rename contigs - the headers end up with _pilon added however many times pilon ran.
     if os.path.isfile(assembly_file):
         return  # Don't bother re-assembling something that's already assembled
     if not os.path.isdir(output_directory):

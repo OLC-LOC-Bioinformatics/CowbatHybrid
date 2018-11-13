@@ -13,7 +13,11 @@ def check_dependencies():
                     'CLARK',
                     'NanoPlot',
                     'wtdbg2',
-                    'wtpoa-cns']
+                    'wtpoa-cns',
+                    'prodigal',
+                    'sistr_cmd',
+                    'mash',  # Not sure if screen functionality needed - if yes, update to require mash >=2.0
+                    'GeneSeekr']
     for dependency in dependencies:
         if shutil.which(dependency) is None:
             logging.error('ERROR: Could not find dependency {}. Check that it is accessible from your $PATH'.format(dependency))
