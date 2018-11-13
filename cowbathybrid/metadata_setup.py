@@ -22,7 +22,8 @@ class Metadata:
         self.unique = True
         self.commit = 'v0.0.1'
         self.homepath = 'a;slkdfhjasdf'  # Pretty sure this never actually gets used.
-        self.path = os.path.join(outputdir, 'reports')
+        self.path = outputdir
+        self.sequencepath = self.path
         # self.reffilepath = ''
 
     def strainer(self):
