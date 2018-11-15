@@ -72,6 +72,7 @@ if __name__ == '__main__':
     # Much smarter way to do this - import Adam's assembly typing thingy and just use that.
     homepath = os.path.split(os.path.abspath(__file__))[0]   # No idea why this is necessary.
     typer = assembly_typing.Typing(start=time.time(),
-                                   sequencepath=best_assemblies_dir,
+                                   sequencepath=os.path.abspath(best_assemblies_dir),  # The CLARK portion of typing needs absolute path
                                    referencefilepath=args.referencefilepath,
                                    scriptpath=homepath)
+    typer.main()

@@ -1,110 +1,79 @@
 #!/usr/bin/env python
 
 import os
-import glob
+import shutil
 import logging
-from Bio import SeqIO
 from cowbathybrid.command_runner import run_cmd
 
 
-def run_wtdbg2(long_reads, output_name, threads=4):
-    cmd = 'wtdbg2 -t {threads} -i {long_reads} -fo {output_name}'.format(long_reads=long_reads, output_name=output_name,
-                                                                         threads=threads)
-    run_cmd(cmd, logfile='log.txt')
-    # This works in wtdbg2 v2.1, but in v2.2 this changes to .ctg.lay.gz - will need to be aware of this when
-    # the conda package gets updated.
-    cmd = 'wtpoa-cns -t {threads} -i {output_name}.ctg.lay -fo {output_name}.fasta'.format(output_name=output_name,
-                                                                                           threads=threads)
-    run_cmd(cmd, logfile='log.txt')
+def trim_illumina(forward_reads, reverse_reads, output_directory, threads):
+    forward_trimmed = os.path.join(output_directory, os.path.split(forward_reads.replace('.fastq.gz', '_trimmed.fastq.gz'))[1])
+    reverse_trimmed = os.path.join(output_directory, os.path.split(reverse_reads.replace('.fastq.gz', '_trimmed.fastq.gz'))[1])
+    cmd = 'bbduk.sh in={forward_reads} in2={reverse_reads} out={forward_trimmed} out2={reverse_trimmed} ' \
+          'qtrim=w trimq=10 ref=adapters minlength=50 threads={threads}'.format(forward_reads=forward_reads,
+                                                                                reverse_reads=reverse_reads,
+                                                                                forward_trimmed=forward_trimmed,
+                                                                                reverse_trimmed=reverse_trimmed,
+                                                                                threads=threads)
+    run_cmd(cmd)
+    return forward_trimmed, reverse_trimmed
 
 
-def generate_and_sort_bam(forward_reads, reverse_reads, assembly, output_bam, threads=1):
-    cmd = 'bbmap.sh in={forward_reads} in2={reverse_reads} out={output_bam} ref={assembly} ' \
-          'nodisk threads={threads}'.format(forward_reads=forward_reads,
-                                            reverse_reads=reverse_reads,
-                                            assembly=assembly,
-                                            output_bam=output_bam.replace('.bam', '_unsorted.bam'),
-                                            threads=threads)
-    run_cmd(cmd, logfile='log.txt')
-    cmd = 'samtools sort -o {output_bam} {unsorted_bam}'.format(output_bam=output_bam,
-                                                                unsorted_bam=output_bam.replace('.bam', '_unsorted.bam'))
-    run_cmd(cmd, logfile='log.txt')
-    cmd = 'samtools index {}'.format(output_bam)
-    run_cmd(cmd, logfile='log.txt')
+def correct_illumina(forward_reads, reverse_reads, output_directory, threads):
+    forward_corrected = os.path.join(output_directory, os.path.split(forward_reads.replace('.fastq.gz', '_corrected.fastq.gz'))[1])
+    reverse_corrected = os.path.join(output_directory, os.path.split(reverse_reads.replace('.fastq.gz', '_corrected.fastq.gz'))[1])
+    cmd = 'tadpole.sh in={forward_reads} in2={reverse_reads} out={forward_corrected} out2={reverse_corrected} ' \
+          'mode=correct threads={threads}'.format(forward_reads=forward_reads,
+                                                  reverse_reads=reverse_reads,
+                                                  forward_corrected=forward_corrected,
+                                                  reverse_corrected=reverse_corrected,
+                                                  threads=threads)
+    run_cmd(cmd)
+    return forward_corrected, reverse_corrected
 
 
-def run_pilon(draft_assembly, forward_reads, reverse_reads, output_assembly, threads=1, output_dir=os.getcwd(), max_pilon_rounds=10):
-    pilon_rounds = 1
-    num_changes_made = 8888858
-    assembly_to_use = draft_assembly
-    while pilon_rounds <= max_pilon_rounds and num_changes_made > 0:
-        logging.debug('Begin pilon round {}'.format(pilon_rounds))
-        pilon_dir = os.path.join(output_dir, 'pilon_{}'.format(pilon_rounds))
-        if not os.path.isdir(pilon_dir):
-            os.makedirs(pilon_dir)
-        generate_and_sort_bam(forward_reads=forward_reads,
-                              reverse_reads=reverse_reads,
-                              assembly=assembly_to_use,
-                              output_bam=os.path.join(pilon_dir, 'pilon.bam'),
-                              threads=threads)
-        cmd = 'pilon --genome {assembly} --bam {bam} --outdir {pilon_dir} --changes'.format(assembly=assembly_to_use,
-                                                                                            bam=os.path.join(pilon_dir, 'pilon.bam'),
-                                                                                            pilon_dir=pilon_dir)
-        run_cmd(cmd, logfile='log.txt')
-        with open(os.path.join(pilon_dir, 'pilon.changes')) as f:
-            num_changes_made = len(f.readlines())
-        logging.debug('Pilon round {} complete. Made {} changes.'.format(pilon_rounds, num_changes_made))
-        assembly_to_use = os.path.join(pilon_dir, 'pilon.fasta')
-        pilon_rounds += 1
-    rename_contigs_and_copy_sequences(input_fasta=assembly_to_use, output_fasta=output_assembly)
+def run_unicycler(forward_reads, reverse_reads, long_reads, output_directory, threads):
+    cmd = 'unicycler -1 {forward_reads} -2 {reverse_reads} -l {long_reads} -o {output_directory} -t {threads} ' \
+          '--no_correct --min_fasta_length 1000 --keep 0'.format(forward_reads=forward_reads,
+                                                                 reverse_reads=reverse_reads,
+                                                                 long_reads=long_reads,
+                                                                 output_directory=output_directory,
+                                                                 threads=threads)
+    run_cmd(cmd)
 
 
-def rename_contigs_and_copy_sequences(input_fasta, output_fasta):
+def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, assembly_file, output_directory, threads):
     """
-    Pilon adds a _pilon to each contig for each round done. That looks stupid, so rewrite the files.
-    :param input_fasta: Path to FASTA that's been corrected lots of times by pilon.
-    :param output_fasta: Path to output fasta file.
-    """
-    sequences_to_write = list()
-    for sequence in SeqIO.parse(input_fasta, 'fasta'):
-        sequence.id = sequence.id.split('_')[0]
-        sequence.description = ''
-        sequences_to_write.append(sequence)
-    SeqIO.write(sequences=sequences_to_write, handle=output_fasta, format='fasta')
-
-
-def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, assembly_file, output_directory, threads,
-                        keep_bams=False):
-    """
-    Runs an assembly using nanopore reads using wtdbg2, which claims to be pretty much as good as Canu, but runs in
-    about a minute. Then polishes the assembly lots using pilon - either 10 rounds or zero changes, whichever comes
-    first. May need to look at these and see if they're actually good settings.
+    Trims and corrects Illumina reads using BBDuk, and then runs unicycler.
     :param long_reads: Path to minION reads - uncorrected.
     :param forward_short_reads: Path to forward illumina reads.
     :param reverse_short_reads: Path to reverse illumina reads.
     :param assembly_file: The name/path of the final assembly file you want created
     :param output_directory: Directory where all the work will be done.
     :param threads: Number of threads to use for analysis
-    :param keep_bams: Pilon needs a bamfile at each step. Set to False to have these bamfiles get deleted, or true
-    to have the bamfiles kept in case you want to take a closer look at them.
     """
     if os.path.isfile(assembly_file):
+        logging.info('Assembly for {} already exists...'.format(assembly_file))
         return  # Don't bother re-assembling something that's already assembled
     if not os.path.isdir(output_directory):
         os.makedirs(output_directory)
-    run_wtdbg2(long_reads=long_reads,
-               output_name=os.path.join(output_directory, 'wtdbg2_assembly'),
-               threads=threads)
-    run_pilon(draft_assembly=os.path.join(output_directory, 'wtdbg2_assembly.fasta'),
-              forward_reads=forward_short_reads,
-              reverse_reads=reverse_short_reads,
-              output_dir=output_directory,
-              output_assembly=assembly_file,
-              threads=threads)
-    # Clean up all the bam files you generate when running pilon, unless it's specified that they should be kept
-    if keep_bams is False:
-        bamfiles = glob.glob(os.path.join(output_directory, 'pilon_*', '*.bam*'))
-        for bamfile in bamfiles:
-            os.remove(bamfile)
-
+    logging.info('Beginning assembly of {}...'.format(assembly_file))
+    logging.info('Trimming Illumina eads...')
+    forward_trimmed, reverse_trimmed = trim_illumina(forward_reads=forward_short_reads,
+                                                     reverse_reads=reverse_short_reads,
+                                                     output_directory=output_directory,
+                                                     threads=threads)
+    logging.info('Correcting Illumina reads...')
+    forward_corrected, reverse_corrected = correct_illumina(forward_reads=forward_trimmed,
+                                                            reverse_reads=reverse_trimmed,
+                                                            output_directory=output_directory,
+                                                            threads=threads)
+    logging.info('Running Unicycler - this will take a while!')
+    run_unicycler(forward_reads=forward_corrected,
+                  reverse_reads=reverse_corrected,
+                  long_reads=long_reads,
+                  output_directory=os.path.join(output_directory, 'unicycler'),
+                  threads=threads)
+    logging.info('Unicycler complete!')
+    shutil.copy(src=os.path.join(output_directory, 'unicycler', 'assembly.fasta'), dst=assembly_file)
 
