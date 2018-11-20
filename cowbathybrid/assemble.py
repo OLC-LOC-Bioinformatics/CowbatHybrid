@@ -42,9 +42,18 @@ def run_unicycler(forward_reads, reverse_reads, long_reads, output_directory, th
     run_cmd(cmd)
 
 
+def run_porechop(minion_reads, output_directory, threads):
+    chopped_reads = os.path.join(output_directory, 'minION_chopped.fastq.gz')
+    cmd = 'porechop -i {minion_reads} -o {chopped_reads} -t {threads}'.format(minion_reads=minion_reads,
+                                                                              chopped_reads=chopped_reads,
+                                                                              threads=threads)
+    run_cmd(cmd)
+    return chopped_reads
+
+
 def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, assembly_file, output_directory, threads):
     """
-    Trims and corrects Illumina reads using BBDuk, and then runs unicycler.
+    Trims and corrects Illumina reads using BBDuk, removes addapters from MinION reads, and then runs unicycler.
     :param long_reads: Path to minION reads - uncorrected.
     :param forward_short_reads: Path to forward illumina reads.
     :param reverse_short_reads: Path to reverse illumina reads.
@@ -68,10 +77,14 @@ def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, as
                                                             reverse_reads=reverse_trimmed,
                                                             output_directory=output_directory,
                                                             threads=threads)
+    logging.info('Chopping adapters from minION reads...')
+    chopped_reads = run_porechop(minion_reads=long_reads,
+                                 output_directory=output_directory,
+                                 threads=threads)
     logging.info('Running Unicycler - this will take a while!')
     run_unicycler(forward_reads=forward_corrected,
                   reverse_reads=reverse_corrected,
-                  long_reads=long_reads,
+                  long_reads=chopped_reads,
                   output_directory=os.path.join(output_directory, 'unicycler'),
                   threads=threads)
     logging.info('Unicycler complete!')

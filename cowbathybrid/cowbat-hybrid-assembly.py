@@ -12,10 +12,11 @@ import logging
 import time
 import os
 
-# TODO: Adapter trimming - use PoreChop (now deprecated, so maybe not)? DownPore?
+# TODO: Get actual log file set up.
+# TODO: Adapter trimming - use PoreChop (now deprecated, so maybe not) - keep an eye out for new adapter trimmers.
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Assembly and perform some typing on hybrid MinION/Illumina data.')
+    parser = argparse.ArgumentParser(description='Assembly and typing on hybrid MinION/Illumina data.')
     parser.add_argument('-i', '--input_csv',
                         required=True,
                         type=str,
@@ -76,3 +77,5 @@ if __name__ == '__main__':
                                    referencefilepath=args.referencefilepath,
                                    scriptpath=homepath)
     typer.main()
+
+    # At this point, files are not in the right place - get Adam to make output dir an option for assembly typer?

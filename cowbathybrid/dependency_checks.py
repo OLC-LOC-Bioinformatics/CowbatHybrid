@@ -12,8 +12,8 @@ def check_dependencies():
                     'mob_recon',
                     'CLARK',
                     'NanoPlot',
-                    'unicycler',
                     'prodigal',
+                    'porechop',
                     'sistr',
                     'mash',  # Not sure if screen functionality needed - if yes, update to require mash >=2.0
                     'GeneSeekr']
@@ -22,5 +22,11 @@ def check_dependencies():
             logging.error('ERROR: Could not find dependency {}. Check that it is accessible from your $PATH'.format(dependency))
             all_dependencies_good = False
     # Other things have very specific versions - for those, need to actually check specific version.
-
+    # Unicycler version 0.4.7 stalls seemingly at random. As far as I can tell 0.4.4 does not suffer from the same
+    # issue, so we'll enforce 0.4.4
+    unicycler_version = subprocess.check_output('unicycler --version', shell=True).decode('utf-8').split()[1]
+    if unicycler_version != 'v0.4.4':
+        logging.error('ERROR: Unicycler version found was {}, but this pipeline requires v0.4.4 - please install '
+                      'the correct version and try again.'.format(unicycler_version))
+        all_dependencies_good = False
     return all_dependencies_good
