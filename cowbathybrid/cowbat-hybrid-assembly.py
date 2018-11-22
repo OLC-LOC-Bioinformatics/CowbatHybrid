@@ -12,7 +12,6 @@ import logging
 import time
 import os
 
-# TODO: Get actual log file set up.
 # TODO: Adapter trimming - use PoreChop (now deprecated, so maybe not) - keep an eye out for new adapter trimmers.
 # TODO: Maybe do some level of read subsampling for long reads - only take longer/better/higher quality ones?
 
