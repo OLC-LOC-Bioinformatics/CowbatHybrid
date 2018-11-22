@@ -14,6 +14,7 @@ import os
 
 # TODO: Get actual log file set up.
 # TODO: Adapter trimming - use PoreChop (now deprecated, so maybe not) - keep an eye out for new adapter trimmers.
+# TODO: Maybe do some level of read subsampling for long reads - only take longer/better/higher quality ones?
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Assembly and typing on hybrid MinION/Illumina data.')
@@ -59,7 +60,9 @@ if __name__ == '__main__':
                      threads=args.threads,
                      output_directory=nanoplot_outdir)
 
-    best_assemblies_dir = os.path.join(args.output_directory, 'BestAssemblies')
+    # Now run assemblies - intermediate files will be in output_directory/samplename/assembly, completed fasta file
+    # will be in output_dicrectory/samplename.fasta
+    best_assemblies_dir = os.path.join(args.output_directory)
     if not os.path.isdir(best_assemblies_dir):
         os.makedirs(best_assemblies_dir)
     for sequence_file_info in sequence_file_info_list:
@@ -78,4 +81,4 @@ if __name__ == '__main__':
                                    scriptpath=homepath)
     typer.main()
 
-    # At this point, files are not in the right place - get Adam to make output dir an option for assembly typer?
+

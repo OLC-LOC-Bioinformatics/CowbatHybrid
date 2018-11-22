@@ -16,5 +16,6 @@ setup(
                       'seaborn',
                       'pandas',
                       'numpy',
-                      'pysam']
+                      'pysam',
+                      'cowbat']
 )

@@ -1,9 +1,10 @@
 # COWBAT-hybrid
 
 TODO...
+
 ### Program Dependencies
 
-- wtdbg2
+- Unicycler
 - BBMap
 - NanoPlot
 - BLAST
