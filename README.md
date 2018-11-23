@@ -13,12 +13,21 @@ For the MinION column and the Illumina columns, put the absolute path to the raw
 `OutName` can be anything - it's what the resulting assembly will be called.
 
 You'll also need to provide a path to the databases that the typing portion of the pipeline needs to run - 
-these can be downloaded and set up following the instructions at `ADD DOCS FOR THIS TO COWBAT REPO`
+these can be downloaded from the following link: TODO
 
 ### Installation
 
-Conda recipe to be built... doing this any other way promises to be excruciatingly difficult.
+This has approximately 8 billion dependencies - the only way that you're likely to succeed is by
+using the `cowbathybrid.yml` file in the root of the repository to set up a conda environment.
+
+To do so: `wget https://raw.githubusercontent.com/lowandrew/CowbatHybrid/master/cowbathybrid.yml && conda env create -n cowbat_hybrid -f cowbathybrid.yml`
+
+You should then be able to `source activate cowbat_hybrid`.
+
+Typing `cowbat-hybrid-assembly.py` will let you run the pipeline.
 
 ### Output Files
 
-To be finalized...
+Your output folder will have an assembly for each input set of sequences, and a `reports` folder
+with lots of information - the most important of these is `combinedMetadata.csv`, which summarizes
+most of the analyses done.

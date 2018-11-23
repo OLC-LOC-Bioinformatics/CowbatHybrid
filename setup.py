@@ -17,5 +17,6 @@ setup(
                       'pandas',
                       'numpy',
                       'pysam',
-                      'cowbat']
+                      'cowbat',
+                      'genomeqaml']
 )

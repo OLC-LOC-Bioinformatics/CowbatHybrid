@@ -13,6 +13,7 @@ def check_dependencies():
                     'CLARK',
                     'NanoPlot',
                     'prodigal',
+                    'pilon',
                     'porechop',
                     'sistr',
                     'mash',  # Not sure if screen functionality needed - if yes, update to require mash >=2.0
