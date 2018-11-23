@@ -13,9 +13,11 @@ For the MinION column and the Illumina columns, put the absolute path to the raw
 `OutName` can be anything - it's what the resulting assembly will be called.
 
 You'll also need to provide a path to the databases that the typing portion of the pipeline needs to run - 
-these can be downloaded from the following link: TODO
+these can be downloaded (see `Installation` to get info on getting them.)
 
 ### Installation
+
+##### Cowbat-hybrid Pipeline and Dependencies
 
 This has approximately 8 billion dependencies - the only way that you're likely to succeed is by
 using the `cowbathybrid.yml` file in the root of the repository to set up a conda environment.
@@ -25,6 +27,13 @@ To do so: `wget https://raw.githubusercontent.com/lowandrew/CowbatHybrid/master/
 You should then be able to `source activate cowbat_hybrid`.
 
 Typing `cowbat-hybrid-assembly.py` will let you run the pipeline.
+
+
+##### Databases
+
+Databases can be downloaded by clicking the following link: `https://scist01.blob.core.windows.net/olc/0.3.4.tar.gz?sp=r&st=2018-11-23T18:43:10Z&se=2021-04-01T01:43:10Z&spr=https&sv=2017-11-09&sig=aIqmlsFgnz1VCpyocJGHzJqz0t5seHdgYguTmwE6bcs%3D&sr=b`
+
+You'll then need to unzip and untar the files, but after that you're ready to go.
 
 ### Output Files
 

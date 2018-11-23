@@ -25,6 +25,8 @@ def check_dependencies():
         if shutil.which(dependency) is None:
             logging.error('ERROR: Could not find dependency {}. Check that it is accessible from your $PATH'.format(dependency))
             all_dependencies_good = False
+        else:
+            logging.debug('Found {} at {}'.format(dependency, shutil.which(dependency)))
     # Other things have very specific versions - for those, need to actually check specific version.
     # Unicycler version 0.4.7 stalls seemingly at random. As far as I can tell 0.4.4 does not suffer from the same
     # issue, so we'll enforce 0.4.4
