@@ -17,6 +17,8 @@ def check_dependencies():
                     'sistr',
                     'mash',  # Not sure if screen functionality needed - if yes, update to require mash >=2.0
                     'GeneSeekr',
+                    'famap',
+                    'fahash',
                     'classify.py']
     for dependency in dependencies:
         if shutil.which(dependency) is None:
