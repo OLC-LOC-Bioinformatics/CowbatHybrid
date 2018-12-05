@@ -22,7 +22,7 @@ dependencies:
   - htslib=1.9=h57f8fdf_0
   - libdeflate=0.8=0
   - mafft=7.407=0
-  - mash=2.0=0
+  - mash=2.0
   - mmtf-python=1.0.2=py35_0
   - mummer=3.23=pl5.22.0_5
   - openpyxl=2.4.0=py35_0
