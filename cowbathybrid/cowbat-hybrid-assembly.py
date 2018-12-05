@@ -44,6 +44,10 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--version',
                         action='version',
                         version=__version__)
+    parser.add_argument('-f', '--filter_reads',
+                        type=int,
+                        help='Unicycler can be pretty darn slow if given very large read sets. With this option, '
+                             'you can specify the number of ')
     args = parser.parse_args()
     SetupLogging(debug=args.verbose)
 
