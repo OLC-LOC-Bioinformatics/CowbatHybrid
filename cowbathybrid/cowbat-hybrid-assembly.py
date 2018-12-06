@@ -47,7 +47,8 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--filter_reads',
                         type=int,
                         help='Unicycler can be pretty darn slow if given very large read sets. With this option, '
-                             'you can specify the number of ')
+                             'you can specify the number of long read bases you want to use. Aiming for 40X-50X depth '
+                             'for your target organism seems to work pretty well.')
     args = parser.parse_args()
     SetupLogging(debug=args.verbose)
 
@@ -78,11 +79,13 @@ if __name__ == '__main__':
                                      reverse_short_reads=sequence_file_info.illumina_r2,
                                      output_directory=os.path.join(args.output_directory, sequence_file_info.outname, 'assembly'),
                                      threads=args.threads,
-                                     assembly_file=os.path.join(best_assemblies_dir, sequence_file_info.outname + '.fasta'))
+                                     assembly_file=os.path.join(best_assemblies_dir, sequence_file_info.outname + '.fasta'),
+                                     filter_reads=args.filter_reads)
 
     # Much smarter way to do this - import Adam's assembly typing thingy and just use that.
     homepath = os.path.split(os.path.abspath(__file__))[0]   # No idea why this is necessary.
     typer = assembly_typing.Typing(start=time.time(),
+
                                    sequencepath=os.path.abspath(best_assemblies_dir),  # The CLARK portion of typing needs absolute path
                                    referencefilepath=os.path.abspath(args.referencefilepath),
                                    scriptpath=homepath)

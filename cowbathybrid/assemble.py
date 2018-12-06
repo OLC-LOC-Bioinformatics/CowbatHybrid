@@ -6,6 +6,7 @@ import shutil
 import logging
 from cowbathybrid.command_runner import run_cmd
 
+
 # Heng Li readfq - super fast!
 def readfq(fp):  # this is a generator function
     last = None  # this is a buffer keeping the last unprocessed line
@@ -39,6 +40,7 @@ def readfq(fp):  # this is a generator function
             if last:  # reach EOF before reading enough quality
                 yield name, seq, None  # yield a fasta record instead
                 break
+
 
 def trim_illumina(forward_reads, reverse_reads, output_directory, threads, logfile=None):
     forward_trimmed = os.path.join(output_directory, os.path.split(forward_reads.replace('.fastq.gz', '_trimmed.fastq.gz'))[1])
@@ -89,7 +91,7 @@ def subsample_minion_reads(minion_reads, output_directory, target_bases=25000000
     # Ideally, would use SeqIO.index, but that doesn't work on gzipped files. Instead, use Heng Li's readfq
     # to iterate through the fastq file, and create a dictionary of read names/lengths
     read_name_length_dict = dict()
-    logging.info('Targeting {} bases for read subsampling'.format(target_bases))
+    logging.info('Targeting {} bases for read subsampling...'.format(target_bases))
     if minion_reads.endswith('.gz'):
         for name, seq, qual in readfq(gzip.open(minion_reads, 'rt')):
             read_name_length_dict[name] = len(seq)
@@ -160,17 +162,18 @@ def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, as
                                                             output_directory=output_directory,
                                                             threads=threads,
                                                             logfile=logfile)
-    logging.info('Chopping adapters from minION reads...')
     if filter_reads:
-        logging.info('Subsampling MinION reads to choose the longest ones.')
+        logging.info('Subsampling MinION reads to choose the longest ones...')
         filtered_reads = subsample_minion_reads(minion_reads=long_reads,
                                                 output_directory=output_directory,
                                                 target_bases=filter_reads)
+        logging.info('Chopping adapters from minION reads...')
         chopped_reads = run_porechop(minion_reads=filtered_reads,
                                      output_directory=output_directory,
                                      threads=threads,
                                      logfile=logfile)
     else:
+        logging.info('Chopping adapters from minION reads...')
         chopped_reads = run_porechop(minion_reads=long_reads,
                                      output_directory=output_directory,
                                      threads=threads,
@@ -190,3 +193,5 @@ def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, as
     os.remove(reverse_corrected)
     os.remove(reverse_trimmed)
     os.remove(chopped_reads)
+    if filter_reads:
+        os.remove(filtered_reads)

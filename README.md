@@ -24,7 +24,12 @@ using the `cowbathybrid.yml` file in the root of the repository to set up a cond
 
 To do so: `wget https://raw.githubusercontent.com/lowandrew/CowbatHybrid/master/cowbathybrid.yml && conda env create -n cowbat_hybrid -f cowbathybrid.yml`
 
-You should then be able to `source activate cowbat_hybrid`.
+You should then be able to `source activate cowbat_hybrid`. 
+
+One final thing to do before you're good to go: by default the bioconda version of pilon allows
+a max of 1 GB RAM. To rectify, find the pilon executable on your system (`which pilon`) and then open
+the resulting file in your text editor of choice. Change the -Xmx1g in `default_jvm_mem_opts = ['-Xms512m', '-Xmx1g']` (should be around line 16) 
+to a higher amount of max RAM (12 GB or so should work `default_jvm_mem_opts = ['-Xms512m', '-Xmx12g']`)
 
 Typing `cowbat-hybrid-assembly.py` will let you run the pipeline.
 
