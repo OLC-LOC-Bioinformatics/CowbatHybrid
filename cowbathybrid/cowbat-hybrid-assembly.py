@@ -16,7 +16,7 @@ import os
 # TODO: Maybe do some level of read subsampling for long reads - only take longer/better/higher quality ones?
 
 if __name__ == '__main__':
-    __version__ = '0.1.0'
+    __version__ = '0.1.1'
     parser = argparse.ArgumentParser(description='Assembly and typing on hybrid MinION/Illumina data.')
     parser.add_argument('-i', '--input_csv',
                         required=True,
@@ -85,7 +85,6 @@ if __name__ == '__main__':
     # Much smarter way to do this - import Adam's assembly typing thingy and just use that.
     homepath = os.path.split(os.path.abspath(__file__))[0]   # No idea why this is necessary.
     typer = assembly_typing.Typing(start=time.time(),
-
                                    sequencepath=os.path.abspath(best_assemblies_dir),  # The CLARK portion of typing needs absolute path
                                    referencefilepath=os.path.abspath(args.referencefilepath),
                                    scriptpath=homepath)

@@ -115,7 +115,7 @@ dependencies:
     - click==7.0
     - confindr==0.4.7
     - cowbat==0.4.4.2
-    - cowbathybrid==0.1.0
+    - cowbathybrid==0.1.1
     - cycler==0.10.0
     - decorator==4.3.0
     - geneseekr==0.2.6
