@@ -103,7 +103,7 @@ dependencies:
   - libgcc-ng=7.2.0=hdf63c60_3
   - libstdcxx-ng=7.2.0=hdf63c60_3
   - mkl=2018.0.3=1
-  - numpy=1.12.1=py35hca0bb5e_1
+  - numpy=1.15.4
   - openjdk=8.0.121=1
   - pycurl=7.43.0.2=py35hb7f436b_0
   - scipy=1.1.0=py35hfc37229_0
