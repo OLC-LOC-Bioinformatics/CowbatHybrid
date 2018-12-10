@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import glob
 import gzip
 import shutil
 import logging
@@ -79,11 +80,27 @@ def run_unicycler(forward_reads, reverse_reads, long_reads, output_directory, th
 
 
 def run_porechop(minion_reads, output_directory, threads, logfile=None):
+    # TODO: Get porechop to demultiplex as well as chop. Will then have to make assumptions on which barcode was
+    # the right one, since I'm assuming demultiplexing will have already happened with albacore.
+    # Will just implement a size check on each of the output files we get and assume the biggest one is right.
     chopped_reads = os.path.join(output_directory, 'minION_chopped.fastq.gz')
-    cmd = 'porechop -i {minion_reads} -o {chopped_reads} -t {threads}'.format(minion_reads=minion_reads,
-                                                                              chopped_reads=chopped_reads,
-                                                                              threads=threads)
+    demultiplex_dir = os.path.join(output_directory, 'demultiplex')
+    cmd = 'porechop -i {minion_reads} -b {demux_dir} -t {threads}'.format(minion_reads=minion_reads,
+                                                                          demux_dir=demultiplex_dir,
+                                                                          threads=threads)
     run_cmd(cmd, logfile=logfile)
+
+    # Now that we've demultiplexed and chopped the FASTQs, figure out which barcode is the one we want.
+    biggest_size = 0
+    file_to_return = 'NA'
+    demuxed_fastqs = glob.glob(os.path.join(demultiplex_dir, '*.fastq.gz'))
+    for fastq in demuxed_fastqs:
+        if os.path.getsize(fastq) > biggest_size:
+            biggest_size = os.path.getsize(fastq)
+            file_to_return = fastq
+    # Copy the biggest file (assume it has the right barcode) and then remove temp files.
+    shutil.copy(file_to_return, chopped_reads)
+    shutil.rmtree(demultiplex_dir)
     return chopped_reads
 
 
