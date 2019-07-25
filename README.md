@@ -19,19 +19,18 @@ these can be downloaded (see `Installation` to get info on getting them.)
 
 ##### Cowbat-hybrid Pipeline and Dependencies
 
-This has approximately 8 billion dependencies - the only way that you're likely to succeed is by
-using the `cowbathybrid.yml` file in the root of the repository to set up a conda environment.
+This is a pain to install - here's how it seems to work best:
 
-To do so: `wget https://raw.githubusercontent.com/lowandrew/CowbatHybrid/master/cowbathybrid.yml && conda env create -n cowbat_hybrid -f cowbathybrid.yml`
-
-You should then be able to `source activate cowbat_hybrid`. 
-
-One final thing to do before you're good to go: by default the bioconda version of pilon allows
+1) Create a new conda environment (must by python 3.5!): `conda create -n cowbat_hybrid python=3.5`
+2) Activate your new conda env: `conda activate cowbat_hybrid`
+3) Install some requirements via pip: `wget https://raw.githubusercontent.com/lowandrew/CowbatHybrid/master/requirements.txt && pip install -r requirements.txt`
+4) Install other things via conda (you should have the `conda-forge` and `bioconda` channels set up): `conda install blast mob_suite clark nanoplot prodigal porechop sistr_cmd mash unicycler=0.4.4`
+5) One final thing to do before you're good to go: by default the bioconda version of pilon allows
 a max of 1 GB RAM. To rectify, find the pilon executable on your system (`which pilon`) and then open
 the resulting file in your text editor of choice. Change the -Xmx1g in `default_jvm_mem_opts = ['-Xms512m', '-Xmx1g']` (should be around line 16) 
 to a higher amount of max RAM (12 GB or so should work `default_jvm_mem_opts = ['-Xms512m', '-Xmx12g']`)
 
-Typing `cowbat-hybrid-assembly.py` will let you run the pipeline.
+You should now be good to go! Typing `cowbat-hybrid-assembly.py` will let you run the pipeline.
 
 
 ##### Databases
