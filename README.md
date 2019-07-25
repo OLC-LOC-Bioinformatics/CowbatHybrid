@@ -32,6 +32,9 @@ to a higher amount of max RAM (12 GB or so should work `default_jvm_mem_opts = [
 
 You should now be good to go! Typing `cowbat-hybrid-assembly.py` will let you run the pipeline.
 
+You might get an error saying that `famap` and `fahash` can't be found. The binaries for those should be in the
+python olctools package - you can add `/miniconda_install_location/envs/your_cowbathybrid_env/lib/python3.5/site-packages/spadespipeline/ePCR/`
+to your `$PATH` to fix this.
 
 ##### Databases
 
