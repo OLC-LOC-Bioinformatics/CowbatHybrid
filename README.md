@@ -24,7 +24,7 @@ This is a pain to install - here's how it seems to work best:
 1) Create a new conda environment (must by python 3.5!): `conda create -n cowbat_hybrid python=3.5`
 2) Activate your new conda env: `conda activate cowbat_hybrid`
 3) Install some requirements via pip: `wget https://raw.githubusercontent.com/lowandrew/CowbatHybrid/master/requirements.txt && pip install -r requirements.txt`
-4) Install other things via conda (you should have the `conda-forge` and `bioconda` channels set up): `conda install blast mob_suite clark nanoplot prodigal porechop sistr_cmd mash unicycler=0.4.4`
+4) Install other things via conda (you should have the `conda-forge` and `bioconda` channels set up): `conda install racon bbmap blast mob_suite clark nanoplot prodigal porechop sistr_cmd mash unicycler=0.4.4`
 5) One final thing to do before you're good to go: by default the bioconda version of pilon allows
 a max of 1 GB RAM. To rectify, find the pilon executable on your system (`which pilon`) and then open
 the resulting file in your text editor of choice. Change the -Xmx1g in `default_jvm_mem_opts = ['-Xms512m', '-Xmx1g']` (should be around line 16) 
