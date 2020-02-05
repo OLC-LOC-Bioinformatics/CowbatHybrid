@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import glob
 import gzip
 import shutil
 import logging
@@ -69,38 +68,26 @@ def correct_illumina(forward_reads, reverse_reads, output_directory, threads, lo
     return forward_corrected, reverse_corrected
 
 
-def run_unicycler(forward_reads, reverse_reads, long_reads, output_directory, threads, logfile=None):
+def run_unicycler(forward_reads, reverse_reads, long_reads, output_directory, threads, logfile=None, conservative=False):
+    if conservative:
+        runmode = "conservative"
+    else:
+        runmode ="normal"
     cmd = 'unicycler -1 {forward_reads} -2 {reverse_reads} -l {long_reads} -o {output_directory} -t {threads} ' \
-          '--no_correct --min_fasta_length 1000 --keep 0'.format(forward_reads=forward_reads,
+          '--no_correct --min_fasta_length 1000 --keep 0 --mode {runmode}'.format(forward_reads=forward_reads,
                                                                  reverse_reads=reverse_reads,
                                                                  long_reads=long_reads,
                                                                  output_directory=output_directory,
-                                                                 threads=threads)
+                                                                 threads=threads, runmode=runmode)
     run_cmd(cmd, logfile=logfile)
 
 
 def run_porechop(minion_reads, output_directory, threads, logfile=None):
-    # TODO: Get porechop to demultiplex as well as chop. Will then have to make assumptions on which barcode was
-    # the right one, since I'm assuming demultiplexing will have already happened with albacore.
-    # Will just implement a size check on each of the output files we get and assume the biggest one is right.
     chopped_reads = os.path.join(output_directory, 'minION_chopped.fastq.gz')
-    demultiplex_dir = os.path.join(output_directory, 'demultiplex')
-    cmd = 'porechop -i {minion_reads} -b {demux_dir} -t {threads}'.format(minion_reads=minion_reads,
-                                                                          demux_dir=demultiplex_dir,
-                                                                          threads=threads)
+    cmd = 'porechop -i {minion_reads} -o {chopped_reads} -t {threads}'.format(minion_reads=minion_reads,
+                                                                              chopped_reads=chopped_reads,
+                                                                              threads=threads)
     run_cmd(cmd, logfile=logfile)
-
-    # Now that we've demultiplexed and chopped the FASTQs, figure out which barcode is the one we want.
-    biggest_size = 0
-    file_to_return = 'NA'
-    demuxed_fastqs = glob.glob(os.path.join(demultiplex_dir, '*.fastq.gz'))
-    for fastq in demuxed_fastqs:
-        if os.path.getsize(fastq) > biggest_size:
-            biggest_size = os.path.getsize(fastq)
-            file_to_return = fastq
-    # Copy the biggest file (assume it has the right barcode) and then remove temp files.
-    shutil.copy(file_to_return, chopped_reads)
-    shutil.rmtree(demultiplex_dir)
     return chopped_reads
 
 
@@ -148,7 +135,7 @@ def subsample_minion_reads(minion_reads, output_directory, target_bases=25000000
     return filtered_reads
 
 
-def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, assembly_file, output_directory, filter_reads=None, threads=1):
+def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, assembly_file, output_directory, filter_reads=None, conservative=False, threads=1):
     """
     Trims and corrects Illumina reads using BBDuk, removes addapters from MinION reads, and then runs unicycler.
     :param long_reads: Path to minION reads - uncorrected.
@@ -201,7 +188,7 @@ def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, as
                   long_reads=chopped_reads,
                   output_directory=os.path.join(output_directory, 'unicycler'),
                   threads=threads,
-                  logfile=logfile)
+                  logfile=logfile, conservative=conservative)
     logging.info('Unicycler complete!')
     shutil.copy(src=os.path.join(output_directory, 'unicycler', 'assembly.fasta'), dst=assembly_file)
     # Also remove the trimmed, corrected, and chopped files - they aren't necessary.

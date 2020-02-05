@@ -13,8 +13,7 @@ import time
 import os
 
 # TODO: Adapter trimming - use PoreChop (now deprecated, so maybe not) - keep an eye out for new adapter trimmers.
-# TODO: Also PoreChop demultiplex for additional stringency? Albacore puts lots (2 or 3 percent of reads) into places
-# they aren't supposed to be.
+# TODO: Maybe do some level of read subsampling for long reads - only take longer/better/higher quality ones?
 
 if __name__ == '__main__':
     __version__ = '0.1.1'
@@ -50,6 +49,7 @@ if __name__ == '__main__':
                         help='Unicycler can be pretty darn slow if given very large read sets. With this option, '
                              'you can specify the number of long read bases you want to use. Aiming for 40X-50X depth '
                              'for your target organism seems to work pretty well.')
+    parser.add_argument('-c', '--conservative', default=False, action="store_true", help="""Run Unicycler in conservative mode. Get more contigs, but fewer misassemblies""")
     args = parser.parse_args()
     SetupLogging(debug=args.verbose)
 
@@ -81,7 +81,7 @@ if __name__ == '__main__':
                                      output_directory=os.path.join(args.output_directory, sequence_file_info.outname, 'assembly'),
                                      threads=args.threads,
                                      assembly_file=os.path.join(best_assemblies_dir, sequence_file_info.outname + '.fasta'),
-                                     filter_reads=args.filter_reads)
+                                     filter_reads=args.filter_reads, conservative=args.conservative)
 
     # Much smarter way to do this - import Adam's assembly typing thingy and just use that.
     homepath = os.path.split(os.path.abspath(__file__))[0]   # No idea why this is necessary.
