@@ -20,7 +20,8 @@ def check_dependencies():
                     'GeneSeekr',
                     'famap',
                     'fahash',
-                    'classify.py']
+                    'classify.py',
+                    'filtlong']
     for dependency in dependencies:
         if shutil.which(dependency) is None:
             logging.error('ERROR: Could not find dependency {}. Check that it is accessible from your $PATH'.format(dependency))

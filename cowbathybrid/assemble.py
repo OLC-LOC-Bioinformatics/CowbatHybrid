@@ -91,6 +91,15 @@ def run_porechop(minion_reads, output_directory, threads, logfile=None):
     return chopped_reads
 
 
+def subsample_via_filtlong(minion_reads, illumina_forward, illumina_reverse, output_directory, target_bases=250000000, logfile=None):
+    logging.info('Targeting {} bases for read subsampling...'.format(target_bases))
+    filtered_reads = os.path.join(output_directory, 'length_filtered_reads.fastq')
+    cmd = 'filtlong -t {target_bases} -1 {illumina_forward} -2 {illumina_reverse} {minion_reads} > {filtered_reads}'.format(target_bases=target_bases, illumina_forward=illumina_forward, illumina_reverse=illumina_reverse, minion_reads=minion_reads, filtered_reads=filtered_reads)
+    run_cmd(cmd, logfile=logfile)
+    return filtered_reads
+
+
+# Andrew's manual read subsampling function -- not ideal for smaller plasmids
 def subsample_minion_reads(minion_reads, output_directory, target_bases=250000000):
     # Ideally, would use SeqIO.index, but that doesn't work on gzipped files. Instead, use Heng Li's readfq
     # to iterate through the fastq file, and create a dictionary of read names/lengths
@@ -168,7 +177,9 @@ def run_hybrid_assembly(long_reads, forward_short_reads, reverse_short_reads, as
                                                             logfile=logfile)
     if filter_reads:
         logging.info('Subsampling MinION reads to choose the longest ones...')
-        filtered_reads = subsample_minion_reads(minion_reads=long_reads,
+        filtered_reads = subsample_via_filtlong(minion_reads=long_reads,
+                                                illumina_forward=forward_short_reads,
+                                                illumina_reverse=reverse_short_reads,
                                                 output_directory=output_directory,
                                                 target_bases=filter_reads)
         logging.info('Chopping adapters from minION reads...')
