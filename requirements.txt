@@ -67,5 +67,5 @@ sklearn==0.0
 statsmodels==0.9.0
 tables==3.4.4
 traitlets==4.3.2
-urllib3==1.24.1
+urllib3==1.24.2
 XlsxWriter==1.1.2
