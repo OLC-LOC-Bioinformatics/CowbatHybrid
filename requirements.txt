@@ -31,7 +31,7 @@ NanoPlot==1.17.3
 nanoplotter==0.42.0
 nbformat==4.4.0
 numexpr==2.6.6
-numpy==1.12.1
+numpy==1.21.0
 olcnastools==1.1.2
 OLCTools==0.6.4
 olefile==0.46
