@@ -222,7 +222,7 @@ def run_hybrid_assembly(long_reads,flye_contigs, forward_short_reads, reverse_sh
 
     ##Mathu added the following code to rename the contigs in the assembly file
     # Modify assembly.fasta headers
-    modify_assembly_headers(assembly_file)
+    modify_assembly_headers(assembly_file, output_directory)
 
     # Remove unnecessary files
     # existing code...
