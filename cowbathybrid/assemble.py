@@ -83,7 +83,7 @@ def run_unicycler(forward_reads, reverse_reads, long_reads, flye_contigs, output
     else:
         runmode ="normal"
     cmd = 'unicycler -1 {forward_reads} -2 {reverse_reads} -l {long_reads} -o {output_directory} -t {threads} ' \
-          '--no_correct --min_fasta_length 2000 --existing_long_read_assembly {flye_contigs} --keep 0 --mode {runmode}'.format(forward_reads=forward_reads,
+          '--no_correct --min_fasta_length 2000 --existing_long_read_assembly {flye_contigs} --keep 0 --mode {runmode}'.format(forward_reads=forward_reads, #AC changed keep to 1 on 230310
                                                                  reverse_reads=reverse_reads,
                                                                  flye_contigs=flye_contigs,
                                                                  long_reads=long_reads,
@@ -153,8 +153,27 @@ def subsample_minion_reads(minion_reads, output_directory, target_bases=25000000
                     f.write(header + '\n' + seq + '\n+\n' + qual + '\n')
     return filtered_reads
 
+def modify_assembly_headers(assembly_file, output_directory):
+    """
+    Modifies the headers in the assembly file from >1, >2, etc., to >contig_1, >contig_2, etc.
+    :param assembly_file: The path to the .fasta file.
+    :param output_directory: Directory where the .fasta file is located.
+    """
+    file_path = assembly_file
+    temp_file_path = file_path + '.tmp'
 
-def run_hybrid_assembly(long_reads,flye_contigs, forward_short_reads, reverse_short_reads, assembly_file, gfa_file, output_directory, filter_reads=None, conservative=False, threads=1): #madhu added gfa_file
+    with open(file_path, 'r') as infile, open(temp_file_path, 'w') as outfile:
+        for line in infile:
+            if line.startswith('>'):
+                new_header = line.replace('>', '>contig_', 1)
+                outfile.write(new_header)
+            else:
+                outfile.write(line)
+
+    # Replace the original file with the modified one
+    os.replace(temp_file_path, file_path)
+
+def run_hybrid_assembly(long_reads,flye_contigs, forward_short_reads, reverse_short_reads, assembly_file,gfa_file, output_directory, filter_reads=None, conservative=False, threads=1):#AC added gfa_file 230314
     """
     Trims and corrects Illumina reads using BBDuk, removes addapters from MinION reads, and then runs unicycler.
     :param long_reads: Path to minION reads - uncorrected.
@@ -198,6 +217,7 @@ def run_hybrid_assembly(long_reads,flye_contigs, forward_short_reads, reverse_sh
                                      threads=threads,
                                      logfile=logfile)
     else:
+        filtered_reads = None
         logging.info('Chopping adapters from minION reads...')
         chopped_reads = run_porechop(minion_reads=long_reads,
                                      output_directory=output_directory,
@@ -210,44 +230,24 @@ def run_hybrid_assembly(long_reads,flye_contigs, forward_short_reads, reverse_sh
                  logfile=logfile)
         logging.info('flye complete!')
         logging.info('Running Unicycler - this will take a while!')
-        run_unicycler(forward_reads=forward_corrected,
-                  reverse_reads=reverse_corrected,
-		  flye_contigs=flye_contigs,
-                  long_reads=chopped_reads,
-                  output_directory=os.path.join(output_directory, 'unicycler'),
-                  threads=threads,
-                  logfile=logfile, conservative=conservative)
+        run_unicycler(
+            forward_reads=forward_corrected,
+            reverse_reads=reverse_corrected,
+            flye_contigs=flye_contigs,
+            long_reads=chopped_reads,
+            output_directory=os.path.join(output_directory, 'unicycler'),
+            threads=threads,
+            logfile=logfile,
+            conservative=conservative
+        )
     logging.info('Unicycler complete!')
     shutil.copy(src=os.path.join(output_directory, 'unicycler', 'assembly.fasta'), dst=assembly_file)
 
-    ##Mathu added the following code to rename the contigs in the assembly file
-    # Modify assembly.fasta headers
+    # Modify the assembly headers
     modify_assembly_headers(assembly_file, output_directory)
 
-    # Remove unnecessary files
-    # existing code...
+    shutil.copy(src=os.path.join(output_directory, 'unicycler', 'assembly.gfa'), dst=gfa_file)
 
-def modify_assembly_headers(assembly_file, output_directory):
-    """
-    Modifies the headers in the assembly file from >1, >2, etc., to >contig_1, >contig_2, etc.
-    :param assembly_file: Path to the assembly file.
-    :param output_directory: Directory where the assembly file is located.
-
-    """
-    temp_file = assembly_file + '.tmp'
-    with open(assembly_file, 'r') as infile, open(temp_file, 'w') as outfile:
-        for line in infile:
-            if line.startswith('>'):
-                parts = line.strip().split()
-                contig_num = parts[0][1:]  # Extract the number after '>'
-                new_header = '>contig_' + contig_num
-                outfile.write(new_header + '\n')
-            else:
-                outfile.write(line)
-    # Replace the original assembly file with the modified one
-    os.replace(temp_file, assembly_file)
-    # end of Mathu's code to modify the contig names
-    shutil.copy(src=os.path.join(output_directory, 'unicycler', 'assembly.gfa'), dst=gfa_file) #Madhu added this
     # Also remove the trimmed, corrected, and chopped files - they aren't necessary.
     os.remove(forward_trimmed)
     os.remove(forward_corrected)
