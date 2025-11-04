@@ -63,9 +63,10 @@ seaborn==0.9.0
 sipprverse==0.2.10
 sistr-cmd==1.0.2
 six==1.11.0
-sklearn==0.0
+scikit-learn
 statsmodels==0.9.0
 tables==3.4.4
 traitlets==4.3.2
 urllib3==1.24.1
 XlsxWriter==1.1.2
+flye==2.9.1
