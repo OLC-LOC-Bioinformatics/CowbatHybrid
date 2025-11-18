@@ -1,0 +1,1 @@
+python cowbat-hybrid-assembly.py -i /mnt/nas2/raw_sequence_data/nanopore/220613_MC110090/test_inputtable.csv -o /mnt/nas/users/madhu/CowbatHybrid/test_out -r /mnt/nas2/databases/assemblydatabases/0.5.0.10

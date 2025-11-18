@@ -1,70 +1,86 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import os
+"""
+Create a combined metadata report from the legacy combinedMetadata.csv file.
+"""
+
+# Standard imports
 import csv
-import glob
-from Bio import SeqIO
+import os
+from typing import Tuple
 
+class Sample:
+    def __init__(self, name, datastore, out_dir):
+        self.name = name
+        self.datastore = datastore
+        self.general = General(out_dir)
+
+class General:
+    def __init__(self, out_dir):
+        self.out_dir = out_dir
+
+class RunMetadata:
+    def __init__(self, samples):
+        self.samples = samples
+
+class Metadata:
+    def __init__(self, runmetadata):
+        self.runmetadata = runmetadata
+
+def parse_flye_log(flye_log_path):
+    """
+    Parses the flye.log file to extract the Mean Coverage value.
+    :param flye_log_path: Full path to the flye.log file
+    :return: Mean Coverage value as a string
+    """
+    mean_coverage = 'ND'
+    with open(flye_log_path, 'r') as log_file:
+        for line in log_file:
+            if 'Mean coverage:' in line:
+                mean_coverage = line.split(':')[1].strip()
+                break
+    return mean_coverage
+
+def parse_nanoplot_stats(nanoplot_stats_path) -> Tuple[str, str]:
+    """
+    Parses the NanoStats.txt file to extract the Mean read length value.
+    :param nanoplot_stats_path: Full path to the NanoStats.txt file
+    :return: Mean read length value as a string
+    """
+    mean_read_length = 'ND'
+    mean_read_quality = 'ND'
+    with open(nanoplot_stats_path, 'r') as stats_file:
+        for line in stats_file:
+            if 'Mean read length:' in line:
+                mean_read_length = line.split(':')[1].strip()
+            elif 'Mean read quality:' in line:
+                mean_read_quality = line.split(':')[1].strip()
+    return mean_read_length, mean_read_quality
 
 def create_combinedmetadata_report(assemblies_dir, reports_directory, metadata):
     if not os.path.isdir(reports_directory):
         os.makedirs(reports_directory)
-    # Create basic assembly stats (N50, numcontigs, total length)
-    basic_stats_report(assemblies_dir=assemblies_dir,
-                       reports_directory=reports_directory)
-    with open(os.path.join(reports_directory, 'combinedMetadata.csv'), 'w') as f:
-        f.write('SampleName,N50,NumContigs,TotalLength,MeanInsertSize,AverageCoverageDepth,ReferenceGenome,RefGenomeAlleleMatches,16sPhylogeny,rMLSTsequenceType,MLSTsequencetype,MLSTmatches,coreGenome,SeroType,geneSeekrProfile,vtyperProfile,percentGC,TotalPredictedGenes,predictedgenesover3000bp,predictedgenesover1000bp,predictedgenesover500bp,predictedgenesunder500bp,SequencingDate,Investigator,TotalClustersinRun,NumberofClustersPF,PercentOfClusters,LengthofForwardRead,LengthofReverseRead,Project,PipelineVersion\n')
-        for sample in metadata.runmetadata.samples:
-            # Find n50, num_contigs and totallength by parsing the basic stats report.
-            with open(os.path.join(reports_directory, 'basic_stats.csv')) as csvfile:
-                sample_found = False
-                reader = csv.DictReader(csvfile)
-                for row in reader:
-                    if sample.name == row['SampleName']:
-                        sample_found = True
-                        n50 = row['N50']
-                        num_contigs = row['NumContigs']
-                        total_length = row['TotalLength']
-                if sample_found is False:
-                    n50 = 'ND'
-                    num_contigs = 'ND'
-                    total_length = 'ND'
-            f.write('{},{},{},{},'.format(sample.name, n50, num_contigs, total_length))
-            for i in range(13):
-                f.write(',')
-            f.write('{},{},{},{},{},'.format(sample.prodigal.predictedgenestotal,
-                                             sample.prodigal.predictedgenesover3000bp,
-                                             sample.prodigal.predictedgenesover1000bp,
-                                             sample.prodigal.predictedgenesover500bp,
-                                             sample.prodigal.predictedgenesunder500bp))
-            for i in range(9):
-                f.write(',')
-            f.write('\n')
 
+    legacy_metadata_path = os.path.join(reports_directory, 'legacy_combinedMetadata.csv')
+    with open(legacy_metadata_path, 'r', encoding='utf-8') as combined_legacy:
+        reader = csv.DictReader(combined_legacy)
+        legacy_metadata = list(reader)
 
-def basic_stats_report(assemblies_dir, reports_directory):
-    assembly_files = glob.glob(os.path.join(assemblies_dir, '*.fasta'))
-    with open(os.path.join(reports_directory, 'basic_stats.csv'), 'w') as f:
-        f.write('SampleName,N50,NumContigs,TotalLength\n')
-    for assembly in assembly_files:
-        total_length = 0
-        contig_sizes = list()
-        for contig in SeqIO.parse(assembly, 'fasta'):
-            contig_length = len(contig)
-            contig_sizes.append(contig_length)
-            total_length += contig_length
-        contig_sizes = sorted(contig_sizes, reverse=True)
-        num_contigs = len(contig_sizes)
-        length_so_far = 0
-        n50 = 0
-        i = 0
-        while length_so_far <= (total_length * 0.5) and i < len(contig_sizes):
-            length_so_far += contig_sizes[i]
-            n50 = contig_sizes[i]
-            i += 1
-        with open(os.path.join(reports_directory, 'basic_stats.csv'), 'a+') as f:
-            sample_name = os.path.split(assembly)[1].replace('.fasta', '')
-            f.write('{},{},{},{}\n'.format(sample_name, n50, num_contigs, total_length))
+    for sample in metadata.runmetadata.samples:
+        flye_log = os.path.join(sample.general.out_dir, 'flye', 'flye.log')
+        nanoplot_stats = os.path.join(sample.general.out_dir, 'nanoplot', 'NanoStats.txt')
 
+        mean_coverage = parse_flye_log(flye_log)
+        mean_read_length, mean_read_quality = parse_nanoplot_stats(nanoplot_stats)
 
+        for row in legacy_metadata:
+            if row['SeqID'] == sample.name:
+                row['Nanopore_coverage'] = mean_coverage
+                row['Mean_read_length_nanopore'] = mean_read_length
+                row['Mean_read_quality_nanopore'] = mean_read_quality
 
+    with open(legacy_metadata_path, 'w', encoding='utf-8', newline='') as combined_legacy:
+        fieldnames = legacy_metadata[0].keys()
+        writer = csv.DictWriter(combined_legacy, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(legacy_metadata)

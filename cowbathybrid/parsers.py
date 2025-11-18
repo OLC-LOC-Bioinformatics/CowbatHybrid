@@ -4,11 +4,13 @@ import csv
 
 
 class SequenceFileInfo:
+    #def __init__(self, minion_reads, illumina_r1, illumina_r2, outname, flye_contigs):
     def __init__(self, minion_reads, illumina_r1, illumina_r2, outname):
         self.minion_reads = minion_reads
         self.illumina_r1 = illumina_r1
         self.illumina_r2 = illumina_r2
         self.outname = outname
+        #self.flye_contigs = flye_contigs
 
 
 def parse_hybrid_csv(csvfile):
@@ -27,4 +29,5 @@ def parse_hybrid_csv(csvfile):
                                                        illumina_r1=row['Illumina_R1'],
                                                        illumina_r2=row['Illumina_R2'],
                                                        outname=row['OutName']))
+                                                       #flye_contigs=row['Flye_Contigs']))
     return sequence_file_info

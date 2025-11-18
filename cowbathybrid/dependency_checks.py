@@ -20,6 +20,7 @@ def check_dependencies():
                     'GeneSeekr',
                     'famap',
                     'fahash',
+                    'flye',
                     'classify.py',
                     'filtlong']
     for dependency in dependencies:
