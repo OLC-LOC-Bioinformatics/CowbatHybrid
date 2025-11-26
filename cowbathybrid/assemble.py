@@ -70,7 +70,7 @@ def correct_illumina(forward_reads, reverse_reads, output_directory, threads, lo
 
 #Madhu introduced the fly assembler to produce long contigs for producing hybrid assembly ##########################
 def run_flye(long_reads, output_directory, threads, logfile=None):
-    cmd = 'flye --nano-raw {long_reads}  -t {threads} --out-dir {output_directory}'.format(long_reads=long_reads,
+    cmd = 'flye --nano-raw {long_reads} -t {threads} --out-dir {output_directory}'.format(long_reads=long_reads,
                                                                                                output_directory=output_directory,
 											       threads=threads) #AC removed a runmode=runmode which was not defined
     run_cmd(cmd, logfile=logfile)
@@ -153,6 +153,25 @@ def subsample_minion_reads(minion_reads, output_directory, target_bases=25000000
                     f.write(header + '\n' + seq + '\n+\n' + qual + '\n')
     return filtered_reads
 
+def modify_assembly_headers(assembly_file, output_directory):
+    """
+    Modifies the headers in the assembly file from >1, >2, etc., to >contig_1, >contig_2, etc.
+    :param assembly_file: The path to the .fasta file.
+    :param output_directory: Directory where the .fasta file is located.
+    """
+    file_path = assembly_file
+    temp_file_path = file_path + '.tmp'
+
+    with open(file_path, 'r') as infile, open(temp_file_path, 'w') as outfile:
+        for line in infile:
+            if line.startswith('>'):
+                new_header = line.replace('>', '>contig_', 1)
+                outfile.write(new_header)
+            else:
+                outfile.write(line)
+
+    # Replace the original file with the modified one
+    os.replace(temp_file_path, file_path)
 
 def run_hybrid_assembly(long_reads,flye_contigs, forward_short_reads, reverse_short_reads, assembly_file,gfa_file, output_directory, filter_reads=None, conservative=False, threads=1):#AC added gfa_file 230314
     """
@@ -223,33 +242,12 @@ def run_hybrid_assembly(long_reads,flye_contigs, forward_short_reads, reverse_sh
         )
     logging.info('Unicycler complete!')
     shutil.copy(src=os.path.join(output_directory, 'unicycler', 'assembly.fasta'), dst=assembly_file)
-    ##Mathu added the following code to rename the contigs in the assembly file
-    # Modify assembly.fasta headers
+
+    # Modify the assembly headers
     modify_assembly_headers(assembly_file, output_directory)
 
-    # Remove unnecessary files
-    # existing code...
-
-def modify_assembly_headers(assembly_file, output_directory):
-    """
-    Modifies the headers in the assembly file from >1, >2, etc., to >contig_1, >contig_2, etc.
-    :param assembly_file: Path to the assembly file.
-    :param output_directory:directory where all the work is done
-    """
-    temp_file = assembly_file + '.tmp'
-    with open(assembly_file, 'r') as infile, open(temp_file, 'w') as outfile:
-        for line in infile:
-            if line.startswith('>'):
-                parts = line.strip().split()
-                contig_num = parts[0][1:]  # Extract the number after '>'
-                new_header = '>contig_' + contig_num
-                outfile.write(new_header + '\n')
-            else:
-                outfile.write(line)
-    # Replace the original assembly file with the modified one
-    os.replace(temp_file, assembly_file)
-  #end of Mathu's code to modify the contig names
     shutil.copy(src=os.path.join(output_directory, 'unicycler', 'assembly.gfa'), dst=gfa_file)
+
     # Also remove the trimmed, corrected, and chopped files - they aren't necessary.
     os.remove(forward_trimmed)
     os.remove(forward_corrected)
