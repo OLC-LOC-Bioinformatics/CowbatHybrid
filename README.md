@@ -28,7 +28,7 @@ This is a pain to install - here's how it seems to work best:
 5) clone the git environment like this git clone https://github.com/OLC-LOC-Bioinformatics/CowbatHybrid.git
 6) cd CowbatHybrid
 7) Install some requirements via pip: `pip install -r requirements.txt`
-8) Install other things via conda (you should have the `conda-forge` and `bioconda` channels set up): `conda install racon bbmap blast mob_suite clark nanoplot prodigal filtlong porechop sistr_cmd mash unicycler=0.4.4`
+8) Install other things via conda/mamba (you should have the `conda-forge` and `bioconda` channels set up): `mamba install racon bbmap blast mob_suite clark nanoplot prodigal filtlong porechop sistr_cmd mash unicycler=0.4.4`
 9) One final thing to do before you're good to go: by default the bioconda version of pilon allows
 a max of 1 GB RAM. To rectify, find the pilon executable on your system (`which pilon`) and then open
 the resulting file in your text editor of choice. Change the -Xmx1g in `default_jvm_mem_opts = ['-Xms512m', '-Xmx1g']` (should be around line 16) 
