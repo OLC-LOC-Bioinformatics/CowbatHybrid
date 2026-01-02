@@ -69,4 +69,3 @@ tables==3.4.4
 traitlets==4.3.2
 urllib3==1.24.1
 XlsxWriter==1.1.2
-flye==2.9.6
