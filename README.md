@@ -27,7 +27,7 @@ This is a pain to install - here's how it seems to work best:
 4) sudo apt install mummer
 5) clone the git environment like this git clone https://github.com/OLC-LOC-Bioinformatics/CowbatHybrid.git
 6) cd CowbatHybrid
-7) Install some requirements via pip: `pip install -r requirements.txt`
+7) Install some requirements via pip: `SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True pip install -r requirements.txt`
 8) Install other things via conda/mamba (you should have the `conda-forge` and `bioconda` channels set up): `mamba install flye racon bbmap blast ectyper mob_suite clark nanoplot prodigal filtlong porechop sistr_cmd mash unicycler=0.4.4`
 9) One final thing to do before you're good to go: by default the bioconda version of pilon allows
 a max of 1 GB RAM. To rectify, find the pilon executable on your system (`which pilon`) and then open
