@@ -21,7 +21,7 @@ these can be downloaded (see `Installation` to get info on getting them.)
 
 This is a pain to install - here's how it seems to work best:
 
-1) Create a new conda environment (must by python 3.5!): `conda create -n cowbat_hybrid python=3.5`
+1) Create a new conda environment (must by python 3.9!): `conda create -n cowbat_hybrid python=3.9`
 2) Activate your new conda env: `conda activate cowbat_hybrid`
 3) sudo apt install -y build-essential pkg-config libcurl4-openssl-dev libssl-dev zlib1g-dev
 4) sudo apt install mummer
