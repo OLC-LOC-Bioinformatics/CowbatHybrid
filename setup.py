@@ -6,7 +6,7 @@ setup(
     name="cowbathybrid",
     version="0.1.1",
     packages=find_packages(),
-    scripts=['cowbathybrid/cowbat-hybrid-assembly.py'],
+    scripts=['cowbat-hybrid-assembly.py'],
     author="Andrew Low",
     author_email="andrew.low@canada.ca",
     url="https://github.com/lowandrew/cowbat-hybrid",
