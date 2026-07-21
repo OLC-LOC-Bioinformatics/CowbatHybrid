@@ -1,11 +1,8 @@
 #!/mnt/nas2/virtual_environments/cowbat_hybrid/bin/python3.9
 
 """
-Wrapper script for the cowbat-hybrid pipeline.   This script will take a CSV file with the following headers:
-MinION, Illumina_R1, Illumina_R2, and OutName.   For MinION, Illumina_R1, and Illumina_R2, the full path to the read
-file for each sample should be present.  OutName is what you want your assembly to be called.  This script will run
-nanoplot on the MinION reads, run flye on the MinION reads, and then run hybrid assemblies with Unicycler.   Finally,
-it will run assembly typing on the assemblies with the cowbat pipeline.  
+Wrapper script for the cowbat-hybrid pipeline. This script takes a CSV file with headers:
+MinION, Illumina_R1, Illumina_R2, OutName.
 """
 
 # Standard imports
@@ -21,7 +18,6 @@ from cowbat import assembly_typing
 from olctools.accessoryFunctions.accessoryFunctions import SetupLogging
 
 # Local imports
-from cowbathybrid.command_runner import run_cmd
 from cowbathybrid.dependency_checks import check_dependencies
 from cowbathybrid.flye import run_flye
 from cowbathybrid.parsers import parse_hybrid_csv
@@ -32,155 +28,156 @@ from cowbathybrid.reports import Metadata, create_combinedmetadata_report, Sampl
 
 __author__ = 'Mathu Malar'
 
+
+def relocate_nested_reports(best_assemblies_dir, root_reports_dir):
+    nested_reports = os.path.join(best_assemblies_dir, 'reports')
+    if not os.path.isdir(nested_reports):
+        return
+
+    os.makedirs(root_reports_dir, exist_ok=True)
+    logging.info("Relocating reports: %s -> %s", nested_reports, root_reports_dir)
+
+    for item in os.listdir(nested_reports):
+        src = os.path.join(nested_reports, item)
+        dst = os.path.join(root_reports_dir, item)
+        if os.path.exists(dst):
+            if os.path.isdir(dst):
+                shutil.rmtree(dst)
+            else:
+                os.remove(dst)
+        shutil.move(src, dst)
+
+    shutil.rmtree(nested_reports)
+    logging.info("Nested reports relocated.")
+
+
 if __name__ == '__main__':
-    # Parse the command line arguments
     parser = argparse.ArgumentParser(description='Assembly and typing on hybrid MinION/Illumina data.')
-    parser.add_argument(
-        '-i', '--input_csv',
-        required=True,
-        type=str,
-        help='Path to a CSV-formatted file with the following headers: MinION, Illumina_R1, Illumina_R2, and OutName. '
-             'For MinION, Illumina_R1, and Illumina_R2, the full path to the read file for each sample should be '
-             'present. OutName is what you want your assembly to be called.'
-    )
-    parser.add_argument(
-        '-r', '--referencefilepath',
-        required=True,
-        type=str,
-        help='Full path to folder containing reference databases.'
-    )
-    parser.add_argument(
-        '-t', '--threads',
-        type=int,
-        default=multiprocessing.cpu_count(),
-        help='Number of threads to run pipeline with. Defaults to number of cores on the system.'
-    )
-    parser.add_argument(
-        '-o', '--output_directory',
-        type=str,
-        required=True,
-        help='Full path to directory where you want to store your outputs.'
-    )
-    parser.add_argument(
-        '-verbose', '--verbose',
-        default=False,
-        action='store_true',
-        help='Activate this flag to get lots of debug output.'
-    )
-    parser.add_argument(
-        '-v', '--version',
-        action='version',
-        version=__version__
-    )
-    parser.add_argument(
-        '--asm-coverage',
-        required=False,
-        type=int,
-        default=None,               # FIXED: None instead of False
-        dest='asm_coverage',        # FIXED: explicit dest so args.asm_coverage works
-        help='Reduced coverage for initial disjointig assembly (e.g. 50). '
-             'Optional - set if flye is not producing any disjointigs. '
-             'Recommended to use together with --genome-size.'
-    )
-    parser.add_argument(
-        '-g', '--genome-size',
-        required=False,
-        type=str,                   # FIXED: str instead of int (values like 5m, 1.7m, 500k)
-        default=None,               # FIXED: None instead of False
-        dest='genome_size',         # FIXED: explicit dest so args.genome_size works
-        help='For flye - Estimated genome size of assembled organism '
-             '(e.g. 5m, 3m, 1.7m, 500k). '
-             'Optional - if not provided, Flye estimates automatically. '
-             'Required if using --asm-coverage flag.'
-    )
-    parser.add_argument(
-        '-f', '--filter_reads',
-        type=int,
-        default=None,
-        help='Unicycler can be pretty darn slow if given very large read sets. With this option, you can specify the '
-             'number of long read bases you want to use. Aiming for 40X-50X depth for your target organism seems to '
-             'work pretty well.'
-    )
-    parser.add_argument(
-        '-c', '--conservative',
-        default=False,
-        action="store_true",
-        help="Run Unicycler in conservative mode. Get more contigs, but fewer mis-assemblies."
-    )
+    parser.add_argument('-i', '--input_csv', required=True, type=str,
+                        help='CSV with headers: MinION, Illumina_R1, Illumina_R2, OutName')
+    parser.add_argument('-r', '--referencefilepath', required=True, type=str,
+                        help='Full path to folder containing reference databases.')
+    parser.add_argument('-t', '--threads', type=int, default=multiprocessing.cpu_count(),
+                        help='Number of threads. Defaults to all cores.')
+    parser.add_argument('-o', '--output_directory', type=str, required=True,
+                        help='Output directory.')
+    parser.add_argument('-verbose', '--verbose', default=False, action='store_true',
+                        help='Verbose logging.')
+    parser.add_argument('-v', '--version', action='version', version=__version__)
+    parser.add_argument('--asm-coverage', required=False, type=int, default=None, dest='asm_coverage')
+    parser.add_argument('-g', '--genome-size', required=False, type=str, default=None, dest='genome_size')
+    parser.add_argument('-f', '--filter_reads', type=int, default=None)
+    parser.add_argument('-c', '--conservative', default=False, action='store_true')
+    parser.add_argument('--min-read-length', type=int, default=6000, dest='min_read_length')
+    parser.add_argument('--filtlong-keep-percent', type=float, default=95, dest='filtlong_keep_percent')
+    parser.add_argument('--run-dnaapler', action='store_true', default=False, dest='run_dnaapler')
+    parser.add_argument('--dnaapler-args', type=str, default='', dest='dnaapler_args')
+
     args = parser.parse_args()
     SetupLogging(debug=args.verbose)
 
     if check_dependencies() is False:
-        quit(code=1)
+        raise SystemExit(1)
 
-    # Log genome size and asm coverage if provided
-    if args.genome_size:
-        logging.info('Genome size set to: %s', args.genome_size)
-    if args.asm_coverage:
-        logging.info('Flye assembly coverage set to: %s', args.asm_coverage)
-
-    # Parse the input CSV file we were given. This returns a list of SequenceFileInfo objects,
-    # which have illumina_r1, illumina_r2, minion_reads, and outname as attributes.
     sequence_file_info_list = parse_hybrid_csv(args.input_csv)
 
-    # Run NanoPlot on each of the MinION fastq files.
-    # This creates an output_directory/samplename/nanoplot
-    for sequence_file_info in sequence_file_info_list:
-        nanoplot_out_dir = os.path.join(args.output_directory, sequence_file_info.outname, 'nanoplot')
-        if not os.path.isdir(nanoplot_out_dir):
-            os.makedirs(nanoplot_out_dir)
-        logging.info('Running nanoplot on %s...', sequence_file_info.outname)
+    best_assemblies_dir = os.path.join(args.output_directory, 'BestAssemblies')
+    gfa_files_dir = os.path.join(args.output_directory, 'GFA_files')
+    root_reports_dir = os.path.join(args.output_directory, 'reports')
+    os.makedirs(best_assemblies_dir, exist_ok=True)
+    os.makedirs(gfa_files_dir, exist_ok=True)
+    os.makedirs(root_reports_dir, exist_ok=True)
+
+    # 1) NanoPlot on raw reads
+    for s in sequence_file_info_list:
+        nanoplot_out_dir = os.path.join(args.output_directory, s.outname, 'nanoplot')
+        os.makedirs(nanoplot_out_dir, exist_ok=True)
+        logging.info('Running NanoPlot on %s...', s.outname)
         run_nanoplot(
-            fastq_file=sequence_file_info.minion_reads,
+            fastq_file=s.minion_reads,
             threads=args.threads,
             output_directory=nanoplot_out_dir
         )
 
-    # Run Flye assemblies to generate long contigs
-    # Store flye output paths for each sample
+    # 2) Prepare long reads once per sample (porechop + dedup + filtlong), then use for Flye + Unicycler
     flye_outputs = {}
-    for sequence_file_info in sequence_file_info_list:
-        flye_out_dir = os.path.join(args.output_directory, sequence_file_info.outname, 'flye')
-        if not os.path.isdir(flye_out_dir):
-            os.makedirs(flye_out_dir)
-        logging.info('Running flye on %s...', sequence_file_info.outname)
+    prepared_long_reads = {}
+
+    for s in sequence_file_info_list:
+        sample_dir = os.path.join(args.output_directory, s.outname)
+        prep_dir = os.path.join(sample_dir, 'longread_prep')
+        flye_out_dir = os.path.join(sample_dir, 'flye')
+        os.makedirs(prep_dir, exist_ok=True)
+        os.makedirs(flye_out_dir, exist_ok=True)
+
+        prep_log = os.path.join(prep_dir, 'longread_prep.log')
+        logging.info('Preparing Nanopore reads for %s (porechop + dedup + filtlong)...', s.outname)
+
+        chopped_reads = assemble.run_porechop(
+            minion_reads=s.minion_reads,
+            output_directory=prep_dir,
+            threads=args.threads,
+            logfile=prep_log
+        )
+
+        # Always create/check deduped reads (first-token header dedup)
+        dedup_reads = os.path.join(prep_dir, 'minION_chopped_dedup.fastq.gz')
+        total, kept, dropped = assemble.deduplicate_fastq_by_first_token(chopped_reads, dedup_reads)
+        logging.info(
+            "Dedup stats for %s: total=%s kept=%s dropped_duplicates=%s",
+            s.outname, total, kept, dropped
+        )
+
+        # Try filtlong; if it fails, use dedup reads (NOT raw chopped reads)
+        try:
+            qc_reads, _dedup_reads = assemble.qc_nanopore_reads_with_filtlong(
+                minion_reads=chopped_reads,  # function dedups internally and then runs filtlong
+                output_directory=prep_dir,
+                min_read_length=args.min_read_length,
+                keep_percent=args.filtlong_keep_percent,
+                logfile=prep_log
+            )
+            long_reads_for_downstream = qc_reads
+            logging.info('Using filtlong QC reads for %s: %s', s.outname, long_reads_for_downstream)
+        except Exception as e:
+            logging.warning("Filtlong failed for %s (%s). Falling back to deduplicated reads.", s.outname, e)
+            long_reads_for_downstream = dedup_reads
+
+        prepared_long_reads[s.outname] = long_reads_for_downstream
+
+        # Flye now uses prepared reads (NOT raw input)
+        logging.info('Running Flye on %s using prepared reads...', s.outname)
         run_flye(
-            fastq_file=sequence_file_info.minion_reads,
+            fastq_file=long_reads_for_downstream,
             threads=args.threads,
             output_directory=flye_out_dir,
-            genome_size=args.genome_size,       # FIXED: uncommented and corrected
-            asm_coverage=args.asm_coverage      # FIXED: uncommented and corrected
+            genome_size=args.genome_size,
+            asm_coverage=args.asm_coverage
         )
-        # Store the flye output path for this specific sample
-        flye_outputs[sequence_file_info.outname] = os.path.join(flye_out_dir, 'assembly.fasta')
+        flye_outputs[s.outname] = os.path.join(flye_out_dir, 'assembly.fasta')
 
-    # Now run assemblies - intermediate files will be in output_directory/samplename/assembly
-    # completed fasta file will be in output_directory/samplename.fasta
-    best_assemblies_dir = os.path.join(args.output_directory, 'BestAssemblies')
-    gfa_files_dir = os.path.join(args.output_directory, 'GFA_files')
-
-    # Create the output directories if they don't exist
-    os.makedirs(best_assemblies_dir, exist_ok=True)
-    os.makedirs(gfa_files_dir, exist_ok=True)
-
-    logging.info('Running Unicycler on samples...')
-
-    # Run Unicycler on each of the samples with the correct flye output for that sample
-    for sequence_file_info in sequence_file_info_list:
+    # 3) Hybrid assembly
+    logging.info('Running Unicycler hybrid assembly...')
+    for s in sequence_file_info_list:
         assemble.run_hybrid_assembly(
-            long_reads=sequence_file_info.minion_reads,
-            flye_contigs=flye_outputs[sequence_file_info.outname],
-            forward_short_reads=sequence_file_info.illumina_r1,
-            reverse_short_reads=sequence_file_info.illumina_r2,
-            output_directory=os.path.join(args.output_directory, sequence_file_info.outname, 'assembly'),
+            long_reads=prepared_long_reads[s.outname],
+            flye_contigs=flye_outputs[s.outname],
+            forward_short_reads=s.illumina_r1,
+            reverse_short_reads=s.illumina_r2,
+            output_directory=os.path.join(args.output_directory, s.outname, 'assembly'),
             threads=args.threads,
-            assembly_file=os.path.join(best_assemblies_dir, sequence_file_info.outname + '.fasta'),
-            gfa_file=os.path.join(gfa_files_dir, sequence_file_info.outname + '.gfa'),
+            assembly_file=os.path.join(best_assemblies_dir, s.outname + '.fasta'),
+            gfa_file=os.path.join(gfa_files_dir, s.outname + '.gfa'),
             filter_reads=args.filter_reads,
-            conservative=args.conservative
+            conservative=args.conservative,
+            min_read_length=args.min_read_length,
+            filtlong_keep_percent=args.filtlong_keep_percent,
+            run_dnaapler=args.run_dnaapler,
+            dnaapler_args=args.dnaapler_args
         )
 
-    logging.info('Running assembly typing on samples...')
+    # 4) Typing
+    logging.info('Running assembly typing...')
     home_path = os.path.split(os.path.abspath(__file__))[0]
     typer = assembly_typing.Typing(
         start=time.time(),
@@ -191,29 +188,26 @@ if __name__ == '__main__':
     )
     typer.main()
 
-    # Clean up nested BestAssemblies directory created by COWBAT
+    # Cleanup accidental nested BestAssemblies folder if created
     nested_best_assemblies = os.path.join(best_assemblies_dir, 'BestAssemblies')
     if os.path.isdir(nested_best_assemblies):
-        logging.info('Cleaning up nested BestAssemblies directory...')
         shutil.rmtree(nested_best_assemblies)
-        logging.info('Nested BestAssemblies removed.')
 
-    logging.info('Creating reports...')
+    # Ensure reports end up at output_root/reports
+    relocate_nested_reports(best_assemblies_dir, root_reports_dir)
+
+    # 5) Combined metadata report
+    logging.info('Creating combined metadata report...')
     samples = [
-        Sample(
-            name=sequence_file_info.outname,
-            datastore='datastore',
-            out_dir=os.path.join(args.output_directory, sequence_file_info.outname)
-        )
-        for sequence_file_info in sequence_file_info_list
+        Sample(name=s.outname, datastore='datastore', out_dir=os.path.join(args.output_directory, s.outname))
+        for s in sequence_file_info_list
     ]
-    runmetadata = RunMetadata(samples=samples)
-    metadata = Metadata(runmetadata=runmetadata)
+    metadata = Metadata(runmetadata=RunMetadata(samples=samples))
 
-    # Reports directory inside BestAssemblies/reports
     create_combinedmetadata_report(
         assemblies_dir=best_assemblies_dir,
-        reports_directory=os.path.join(best_assemblies_dir, 'reports'),
+        reports_directory=root_reports_dir,
         metadata=metadata
     )
-    logging.info('Done!')
+
+    logging.info('Done! Reports available at %s', root_reports_dir)

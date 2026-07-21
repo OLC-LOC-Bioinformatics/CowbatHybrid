@@ -4,12 +4,12 @@ from setuptools import setup, find_packages
 
 setup(
     name="cowbathybrid",
-    version="0.1.1",
+    version="0.1.2",
     packages=find_packages(),
     scripts=['cowbat-hybrid-assembly.py'],
-    author="Mathu Malar",
-    author_email="Mathu.Malar@inspection.gc.ca",
-    url="https://github.com/OLC-LOC-Bioinformatics/CowbatHybrid.git",
+    author="Mathu MalarAndrew Low",
+    author_email=" Mathu.Malar@inspection.gc.ca, andrew.low@canada.ca",
+    url="https://github.com/OLC-LOC-Bioinformatics/CowbatHybrid",
     install_requires=['olctools',
                       'geneseekr',
                       'sipprverse',
