@@ -29,15 +29,20 @@ def check_dependencies():
             all_dependencies_good = False
         else:
             logging.debug('Found {} at {}'.format(dependency, shutil.which(dependency)))
-    # Other things have very specific versions - for those, need to actually check specific version.
-    # Unicycler version 0.4.7 stalls seemingly at random. As far as I can tell 0.4.4 does not suffer from the same
-    # issue, so we'll enforce 0.4.4
+
+    # Unicycler version check
     try:
-        unicycler_version = subprocess.check_output('unicycler --version', shell=True).decode('utf-8').split()[1]
+        unicycler_version = subprocess.check_output(
+            'unicycler --version', shell=True
+        ).decode('utf-8').split()[1]
     except subprocess.CalledProcessError:
         unicycler_version = 'Not Found'
-    if unicycler_version != 'v0.4.4':
-        logging.error('ERROR: Unicycler version found was {}, but this pipeline requires v0.4.4 - please install '
-                      'the correct version and try again.'.format(unicycler_version))
+
+    if unicycler_version not in ('v0.4.4', 'v0.5.1'):
+        logging.error(
+            'ERROR: Unicycler version found was {}, but this pipeline requires one of: v0.4.4, v0.5.1 - '
+            'please install a supported version and try again.'.format(unicycler_version)
+        )
         all_dependencies_good = False
+
     return all_dependencies_good
