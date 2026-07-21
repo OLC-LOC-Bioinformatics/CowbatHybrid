@@ -107,3 +107,37 @@ Main outputs are written to your chosen output directory, including:
 
 - `BestAssemblies/` (final assembly FASTA files)
 - `reports/` (typing and summary reports; e.g., `combinedMetadata.csv`)
+
+### Additional runtime notes
+
+1. **Pilon memory limit**
+   By default, some Bioconda `pilon` wrappers set max JVM memory to `-Xmx1g`, which may be too low.
+
+   - Find pilon wrapper:
+     ```bash
+     which pilon
+     ```
+   - Edit the wrapper and change:
+     ```python
+     default_jvm_mem_opts = ['-Xms512m', '-Xmx1g']
+     ```
+     to e.g.:
+     ```python
+     default_jvm_mem_opts = ['-Xms512m', '-Xmx12g']
+     ```
+
+2. **`famap` / `fahash` not found**
+   If dependency checks fail for `famap`/`fahash`, locate them and add their directory to `PATH`.
+
+   Example:
+   ```bash
+   find "$CONDA_PREFIX" -type f \( -name famap -o -name fahash \) 2>/dev/null
+   ```
+
+   If found, add parent directory to `PATH`, e.g.:
+   ```bash
+   export PATH="/path/to/dir/with/famap_and_fahash:$PATH"
+   ```
+
+   > Older instructions referenced a Python 3.5 site-packages path.  
+   > For this pipeline use Python 3.9, so always use paths from your active environment (`$CONDA_PREFIX`).
